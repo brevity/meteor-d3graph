@@ -22,7 +22,8 @@ var libFiles = [
         'tags.js',
         'zoomer.js',
         'd3graph.js',
-        'd3treelayout.js'
+        'd3treelayout.js',
+        'graphvis.js'
     ];
 
 Package.on_use(function(api, where) {
@@ -47,6 +48,7 @@ Package.on_test(function (api) {
         "tests/d3links-tests.js",
         "tests/clusteringnodeprovider-tests.js", 
         "tests/clusteringnodeprovider-clustering-tests.js",
-        "tests/d3zoomer-tests.js"
+        "tests/d3zoomer-tests.js",
+        "tests/graphvis-tests.js"
     ], ["client"]);
 });

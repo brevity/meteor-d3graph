@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>GraphViz test</title>
+<style>
+
+svg {
+  font: 10px sans-serif;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+#graph-vis-container {
+  margin: auto;
+  width: 960px;
+  height: 600px;
+  background-color: #f0f0f0;
+}
+
+</style>
+<body>
+    <div id="graph-vis-container"></div>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+<script src="graphvis.js"></script>
+
+<script>
+    $(function () {
+        var svgRenderer = new SvgRenderer($("#graph-vis-container"), {});
+        var graphVis = new GraphVis(svgRenderer, {});
+
+        // Allow access from console:
+        window.svgRenderer = svgRenderer;
+        window.graphVis = graphVis;
+
+        // Create a few nodes and a link
+        var node1 = new NodeCircle("node1", null, 400, 200, 10, "#f00", "#800", 1, "Node #1"); 
+        var node2 = new NodeCircle("node2", null, 200, 200, 20, "#0f0", "#080", 1, "Node #2"); 
+        var node3 = new NodeCircle("node3", null, 300, 300, 30, "#00f", "#008", 1, "Node #3"); 
+        
+        // Render them
+        svgRenderer.update([], [], [node1, node2, node3], []);
+    });
+</script>
+</body>
