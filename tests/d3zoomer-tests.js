@@ -33,7 +33,7 @@ Tinytest.add(testLevel +  'Test mousewheel zoom', function (test) {
 
     var e = document.createEvent("MouseEvents");
     e.initMouseEvent(
-        "mousewheel", 
+        "wheel", 
         true,  // in boolean canBubbleArg,
         true,  // in boolean cancelableArg,
         window,// in views::AbstractView viewArg,

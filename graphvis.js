@@ -7,8 +7,8 @@
 NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hoverText) {
     this.id = id;
     this.data = data;
-    this.x = x;
-    this.y = y;
+    this.x = x; // Note: x and y are NOT scaled to screen space because they are manipulated by d3.force
+    this.y = y; // Scaling takes place in SvgRenderer.update, which is why it takes the scales as parameters.
     this.radius = radius;
     this.color = color;
     this.borderColor = borderColor;
@@ -86,7 +86,7 @@ SvgRenderer = function (containerElement, options) {
     function p_(propertyName) { return function (d) { return d[propertyName]; }; }
     
     // transitionDuration should only be used by tests/debugging
-    this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, transitionDuration) {
+    this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, transitionDuration) {
         transitionDuration = transitionDuration === undefined ? 250 : transitionDuration;
         
         //[of]:        Links
@@ -123,8 +123,8 @@ SvgRenderer = function (containerElement, options) {
             .append("svg:circle")
                 .attr("class", "node")
                 .attr("data-id", function (d) { return d.id; })
-                .attr("cx", function (d) { return d.x; })
-                .attr("cy", function (d) { return d.y; })
+                .attr("cx", function (d) { return xScale(d.x); })
+                .attr("cy", function (d) { return yScale(d.y); })
                 .attr("r", 1e-6)
                 .style("opacity", 1e-6)
                 .style("stroke-width", 2)
@@ -136,8 +136,8 @@ SvgRenderer = function (containerElement, options) {
             .remove();
         
         node.transition().duration(transitionDuration)
-            .attr("cx", function (d) { return d.x; })
-            .attr("cy", function (d) { return d.y; })
+            .attr("cx", function (d) { return xScale(d.x); })
+            .attr("cy", function (d) { return yScale(d.y); })
             .attr("r", function (d) { return d.radius; })
             .style("opacity", function (d) { return d.opacity; })
             .style("fill", function (d) { return d.color; })
@@ -148,7 +148,7 @@ SvgRenderer = function (containerElement, options) {
         //[cf]
     };
 
-    this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, rescale) {
+    this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, rescale) {
         //[of]:        Nodes
         //[c]Nodes
         
@@ -156,8 +156,8 @@ SvgRenderer = function (containerElement, options) {
             .data(nodeCircles, function (d) { return d.id; });
         
         node
-            .attr("cx", function (d) { return d.x; })
-            .attr("cy", function (d) { return d.y; });
+            .attr("cx", function (d) { return xScale(d.x); })
+            .attr("cy", function (d) { return yScale(d.y); });
         
         if (rescale)
             node.attr("r", function (d) { return d.radius; });
@@ -211,52 +211,56 @@ GraphVis = function (renderer, options) {
         .range([0, renderer.height()]);
     
     var visNodes, visLinks, visClusters;
-    var clusterHullMap = {};
-    var  linkLineMap = {};
-    var nodeCircleMap = {};
-    var labelTextMap = {};
+    var clusterHulls = {};
+    var  linkLines = {};
+    var nodeCircles = {};
+    var labelTexts = {};
     
     function initialize() {
-        function zoom() { renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, true); }
-        d3.select(renderer.containerElement()[0]).call(d3.behavior.zoom().x(xScale).y(yScale).scaleExtent([1, 8]).on("zoom", zoom));
+        function zoom() { console.log("ZOOMING"); renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, true); }
+        d3.select(renderer.containerElement()[0]).call(d3.behavior.zoom().x(xScale).y(yScale).scaleExtent([0.25, 4]).on("zoom", zoom));
     }
 
-    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
-        var newNodeCircleMap = {};
-        var newLinkLineMap = {};
-        var newLabelTextMap = {};
-        var newClusterHullMap = {};
+    //[of]:    function nodeCircleFromVisNode(visNode) {
+    function nodeCircleFromVisNode(visNode) {
+        var x, y;
+    
+        if (_.isNumber(visNode.fixedX)) {
+            x = visNode.fixedX;
+            y = visNode.fixedY;     // We assume that if there was a fixed X, there will also be a Y.
+        } else {
+            var oldNodeCircle = _.find(nodeCircles, function (nodeCircle) { return nodeCircle.id === visNode.id; })
+    
+            x = oldNodeCircle ? oldNodeCircle.x : renderer.width() / 2;
+            y = oldNodeCircle ? oldNodeCircle.y : renderer.height() / 2;
+        }
         
-        _.each(newVisNodes, function (visNode) {
-            var x, y;
-            if (nodeCircleMap.hasOwnProperty(visNode.id)) {
-                x = nodeCircleMap[visNode.id].x;
-                y = nodeCircleMap[visNode.id].y;
-            } else {
-                x = renderer.width() / 2;
-                y = renderer.height() / 2;
-            }
-            
-            var radius = 10;
-            var color = "#f00";
-            var borderColor = "#800";
-            var opacity = 1;
-            var hoverText = "";
-            
-            console.log("Creating new node..");
-            newNodeCircleMap[visNode.id] = new NodeCircle(visNode.id, visNode.data, x, y, radius, color, borderColor, opacity, hoverText);
-        });
+        var radius = 10;
+        var color = "#f00";
+        var borderColor = "#800";
+        var opacity = 1;
+        var hoverText = "";
+        
+        return new NodeCircle(visNode.id, visNode.data, x, y, radius, color, borderColor, opacity, hoverText);
+    }
+    //[cf]
 
+    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
+        var newNodeCircles = _.map(newVisNodes, nodeCircleFromVisNode);
+        var newLinkLines = [];
+        var newLabelTexts = [];
+        var newClusterHulls = [];
+        
         visNodes = newVisNodes;
         visLinks = newVisLinks;
         visClusters = newVisClusters;
         
-        nodeCircleMap = newNodeCircleMap;
-        linkLineMap = newLinkLineMap;
-        labelTextMap = newLabelTextMap;
-        clusterHullMap = newClusterHullMap;
+        nodeCircles = newNodeCircles;
+        linkLines = newLinkLines;
+        labelTexts = newLabelTexts;
+        clusterHulls = newClusterHulls;
 
-        renderer.update(_.values(clusterHullMap), _.values(linkLineMap), _.values(nodeCircleMap), _.values(labelTextMap));
+        renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale);
     };
 
     initialize();

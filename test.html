@@ -44,13 +44,25 @@ svg {
         window.svgRenderer = svgRenderer;
         window.graphVis = graphVis;
 
-        // Create a few nodes and a link
-        var node1 = new NodeCircle("node1", null, 400, 200, 10, "#f00", "#800", 1, "Node #1"); 
-        var node2 = new NodeCircle("node2", null, 200, 200, 20, "#0f0", "#080", 1, "Node #2"); 
-        var node3 = new NodeCircle("node3", null, 300, 300, 30, "#00f", "#008", 1, "Node #3"); 
-        
-        // Render them
-        svgRenderer.update([], [], [node1, node2, node3], []);
+        var node1 = new VisNode("node1", null, null, 100, 200);
+        var node2 = new VisNode("node2", null, null, 100, 300);
+        var node3 = new VisNode("node3", null, null, 200, 250);
+        var nodes = [node1, node2, node3];
+
+        for (var i = 0; i < 100; i++) {
+            var n = new VisNode("node" + (i + 4), null, null, Math.floor(Math.random() * 960), Math.floor(Math.random() * 600));
+            nodes.push(n);
+        }
+
+
+        var link1 = new VisLink("link1", null, "node1", "node2");
+        var link2 = new VisLink("link2", null, "node2", "node3");
+        var links = [link1, link2];
+
+        var clusters = [];
+
+        graphVis.update(nodes, links, clusters);
+        //graphVis.startForce();
     });
 </script>
 </body>
