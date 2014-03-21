@@ -39,30 +39,33 @@ svg {
     $(function () {
         var svgRenderer = new SvgRenderer($("#graph-vis-container"), {});
         var graphVis = new GraphVis(svgRenderer, {});
+        var i;
 
         // Allow access from console:
         window.svgRenderer = svgRenderer;
         window.graphVis = graphVis;
 
-        var node1 = new VisNode("node1", null, null, 100, 200);
-        var node2 = new VisNode("node2", null, null, 100, 300);
-        var node3 = new VisNode("node3", null, null, 200, 250);
-        var nodes = [node1, node2, node3];
-
-        for (var i = 0; i < 100; i++) {
-            var n = new VisNode("node" + (i + 4), null, null, Math.floor(Math.random() * 960), Math.floor(Math.random() * 600));
-            nodes.push(n);
+        var clusters = [];
+        for (i = 0; i < 5; i++) {
+            var c = new VisCluster("cluster" + (i + 1), null, i < 2);
+            clusters.push(c);
         }
 
+        var nodes = [];
+        for (var i = 0; i < 50; i++) {
+            var clusterId = null;
+            if (Math.random() * 10 > 5)
+                clusterId = "cluster" + (Math.floor(Math.random() * 5) + 1);
+            var n = new VisNode("node" + (i + 1), null, clusterId);
+            nodes.push(n);
+        }
 
         var link1 = new VisLink("link1", null, "node1", "node2");
         var link2 = new VisLink("link2", null, "node2", "node3");
         var links = [link1, link2];
 
-        var clusters = [];
-
         graphVis.update(nodes, links, clusters);
-        //graphVis.startForce();
+        graphVis.startForce();
     });
 </script>
 </body>

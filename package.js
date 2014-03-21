@@ -44,11 +44,11 @@ Package.on_test(function (api) {
 
     api.add_files(libFiles, ["client"]);
     api.add_files(["tests/stubs.js", "tests/helpers.js",
-        "tests/d3graph-tests.js", 
-        "tests/d3links-tests.js",
-        "tests/clusteringnodeprovider-tests.js", 
-        "tests/clusteringnodeprovider-clustering-tests.js",
-        "tests/d3zoomer-tests.js",
+//        "tests/d3graph-tests.js", 
+//        "tests/d3links-tests.js",
+//        "tests/clusteringnodeprovider-tests.js", 
+//        "tests/clusteringnodeprovider-clustering-tests.js",
+//        "tests/d3zoomer-tests.js",
         "tests/graphvis-tests.js"
     ], ["client"]);
 });

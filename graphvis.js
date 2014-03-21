@@ -4,7 +4,7 @@
 //[of]:Classes fed to renderer
 //[c]Classes fed to renderer
 
-NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hoverText) {
+NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hoverText, fixed) {
     this.id = id;
     this.data = data;
     this.x = x; // Note: x and y are NOT scaled to screen space because they are manipulated by d3.force
@@ -14,13 +14,14 @@ NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hove
     this.borderColor = borderColor;
     this.opacity = opacity;
     this.hoverText = hoverText;
+    this.fixed = fixed;
 };
 
-LinkLine = function (id, data, sourceNodeCircle, targetNodeCircle, thickness, color, opacity, markerStart, markerEnd, dashPattern, hoverText) {
+LinkLine = function (id, data, source, target, thickness, color, opacity, markerStart, markerEnd, dashPattern, hoverText) {
     this.id = id;
     this.data = data;
-    this.sourceNodeCircle = sourceNodeCircle;
-    this.targetNodeCircle = targetNodeCircle;
+    this.source = source;   // These should be NodeCircle instances
+    this.target = target;       // - " -
     this.thickness = thickness;
     this.color = color;
     this.opacity = opacity;
@@ -43,10 +44,10 @@ LabelText = function (id, data, text, x, y, fontSize, color, borderColor, opacit
     this.hoverText = hoverText;
 };
 
-ClusterHull = function (id, data, nodes, color, borderColor, opacity, hoverText) {
+ClusterHull = function (id, data, visNodes, color, borderColor, opacity, hoverText) {
     this.id = id;
     this.data = data;
-    this.nodes = nodes;
+    this.visNodes = visNodes;
     this.color = color;
     this.borderColor = borderColor;
     this.opacity = opacity;
@@ -82,8 +83,6 @@ SvgRenderer = function (containerElement, options) {
                 .attr("class", "layer");
         });
     }
-    
-    function p_(propertyName) { return function (d) { return d[propertyName]; }; }
     
     // transitionDuration should only be used by tests/debugging
     this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, transitionDuration) {
@@ -188,10 +187,9 @@ VisLink = function (id, data, sourceNodeId, targetNodeId) {
     this.targetNodeId = targetNodeId;
 };
 
-VisCluster = function (id, data, nodeIds, isCollapsed) {
+VisCluster = function (id, data, isCollapsed) {
     this.id = id;
     this.data = data;
-    this.nodeIds = nodeIds;
     this.isCollapsed = isCollapsed;
 };
 
@@ -199,9 +197,6 @@ VisCluster = function (id, data, nodeIds, isCollapsed) {
 //[cf]
 
 GraphVis = function (renderer, options) {
-    var defaultOptions = {
-    };
-    
     var xScale = d3.scale.linear()
         .domain([0, renderer.width()])
         .range([0, renderer.width()]);
@@ -210,29 +205,48 @@ GraphVis = function (renderer, options) {
         .domain([0, renderer.height()])
         .range([0, renderer.height()]);
     
-    var visNodes, visLinks, visClusters;
-    var clusterHulls = {};
-    var  linkLines = {};
-    var nodeCircles = {};
-    var labelTexts = {};
+    var clusterHulls = [];
+    var linkLines = [];
+    var nodeCircles = [];
+    var labelTexts = [];
     
+    var force;
+    
+    //[of]:    function initialize() {
     function initialize() {
-        function zoom() { console.log("ZOOMING"); renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, true); }
+        function zoom() { 
+            renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, true); 
+        }
+        
         d3.select(renderer.containerElement()[0]).call(d3.behavior.zoom().x(xScale).y(yScale).scaleExtent([0.25, 4]).on("zoom", zoom));
     }
-
+    //[cf]
+    //[of]:    function clusterHullFromVisCluster(visCluster) {
+    function clusterHullFromVisCluster(visCluster) {
+        var color = "#f00";
+        var borderColor = "#800";
+        var opacity = 1;
+        var hoverText = "";
+    
+        return new ClusterHull(visCluster.id, visCluster, [], color, borderColor, opacity, hoverText);
+    }
+    
+    //[cf]
     //[of]:    function nodeCircleFromVisNode(visNode) {
     function nodeCircleFromVisNode(visNode) {
-        var x, y;
+        var x, y, fixed;
     
         if (_.isNumber(visNode.fixedX)) {
             x = visNode.fixedX;
             y = visNode.fixedY;     // We assume that if there was a fixed X, there will also be a Y.
+            fixed = true;
         } else {
-            var oldNodeCircle = _.find(nodeCircles, function (nodeCircle) { return nodeCircle.id === visNode.id; })
-    
-            x = oldNodeCircle ? oldNodeCircle.x : renderer.width() / 2;
-            y = oldNodeCircle ? oldNodeCircle.y : renderer.height() / 2;
+            var oldNodeCircle = _.find(nodeCircles, function (nodeCircle) { return nodeCircle.id === visNode.id; });
+            var w = renderer.width();
+            var h = renderer.height();
+            x = oldNodeCircle ? oldNodeCircle.x : (w / 2 + (Math.random() * (w / 2) - w / 4));
+            y = oldNodeCircle ? oldNodeCircle.y : (h / 2 + (Math.random() * (h / 2) - h / 4));
+            fixed = false;
         }
         
         var radius = 10;
@@ -241,27 +255,90 @@ GraphVis = function (renderer, options) {
         var opacity = 1;
         var hoverText = "";
         
-        return new NodeCircle(visNode.id, visNode.data, x, y, radius, color, borderColor, opacity, hoverText);
+        return new NodeCircle(visNode.id, visNode.data, x, y, radius, color, borderColor, opacity, hoverText, fixed);
+    }
+    //[cf]
+    //[of]:    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes) {
+    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes) {
+        var radius = 20;
+        var color = "#0f0";
+        var borderColor = "#080";
+        var opacity = 1;
+        var hoverText = "";
+    
+        var w = renderer.width();
+        var h = renderer.height();
+        var x = (w / 2 + (Math.random() * (w / 2) - w / 4));
+        var y = (h / 2 + (Math.random() * (h / 2) - h / 4));
+        
+        var data = {
+            visCluster: visCluster,
+            visNodes: clusterVisNodes
+        };
+        
+        return new NodeCircle("placeholder-" + visCluster.id, data, x, y, radius, color, borderColor, opacity, hoverText, false);
     }
     //[cf]
 
-    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
-        var newNodeCircles = _.map(newVisNodes, nodeCircleFromVisNode);
+    //[of]:    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
+    this.update = function (visNodes, visLinks, visClusters) {
+        var newClusterHulls = [];   // We'll only create hulls for expanded clusters
+        var collapsedClusters = {}  // Collapsed ones go in here to turn into placeholder NodeCircles
+        _.each(visClusters, function (vc) {
+            if (!vc.isCollapsed)
+                newClusterHulls.push(clusterHullFromVisCluster(vc));
+            else
+                collapsedClusters[vc.id] = [];
+        });
+        
+        var newNodeCircles = [];
+        _.each(visNodes, function (visNode) {
+            if (visNode.clusterId) {
+                var clusterHull = _.find(newClusterHulls, function (ch) { return ch.id === visNode.clusterId; });
+                
+                if (clusterHull) {
+                    clusterHull.visNodes.push(visNode);
+                    newNodeCircles.push(nodeCircleFromVisNode(visNode));
+                } else {
+                    if (!collapsedClusters.hasOwnProperty(visNode.clusterId))
+                        throw "Node '" + visNode.id + "' refers to a cluster '" + visNode.clusterId + "' that wasn't defined";
+                    
+                    collapsedClusters[visNode.clusterId].push(visNode);
+                }
+            } else {
+                newNodeCircles.push(nodeCircleFromVisNode(visNode));
+            }
+        });
+        
+        _.each(collapsedClusters, function (clusterVisNodes, clusterId) {
+            var visCluster = _.find(visClusters, function (vc) { return vc.id === clusterId; });
+            newNodeCircles.push(nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes));
+        });
+        
         var newLinkLines = [];
         var newLabelTexts = [];
-        var newClusterHulls = [];
-        
-        visNodes = newVisNodes;
-        visLinks = newVisLinks;
-        visClusters = newVisClusters;
         
         nodeCircles = newNodeCircles;
         linkLines = newLinkLines;
         labelTexts = newLabelTexts;
         clusterHulls = newClusterHulls;
-
+    
         renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale);
     };
+    //[cf]
+
+    //[of]:    this.startForce = function () {
+    this.startForce = function () {
+        force = d3.layout.force()
+            .nodes(nodeCircles)
+            .links(linkLines)
+            .size([renderer.width(), renderer.height()])
+            .on("tick", function (e) {
+                renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, false);
+            })
+            .start();
+    };
+    //[cf]
 
     initialize();
 };

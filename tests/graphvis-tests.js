@@ -127,6 +127,26 @@ Tinytest.add(testLevel + "Update with some complexity", function (test) {
     test.equal(nc1.y, 200, "node3 should be fixed to 100, 200");
 });
 
+Tinytest.add(testLevel + "Simple cluster test", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    var graphVis = new GraphVis(mockRenderer, {});
+    
+    var node1 = new VisNode("node1", null, "cluster1", null, null);
+    var node2 = new VisNode("node2", null, "cluster1", null, null);
+    var cluster1 = new VisCluster("cluster1", null, true);
+
+    // Execute
+    graphVis.update([node1, node2], [], [cluster1]);
+    
+    // Verify
+    test.equal(mockRenderer.nodeCircles.length, 1, "There should be be one circle, representing cluster1");
+    
+    var nc = mockRenderer.nodeCircles[0];
+    test.equal(nc.id, "placeholder-cluster1", "The node circle should be the placeholder for cluster1");
+});
+
+
 Tinytest.add(testLevel + "Zoom test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
