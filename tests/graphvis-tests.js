@@ -127,7 +127,7 @@ Tinytest.add(testLevel + "Update with some complexity", function (test) {
     test.equal(nc1.y, 200, "node3 should be fixed to 100, 200");
 });
 
-Tinytest.add(testLevel + "Simple cluster test", function (test) {
+Tinytest.add(testLevel + "Simple collapsed cluster test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -144,6 +144,36 @@ Tinytest.add(testLevel + "Simple cluster test", function (test) {
     
     var nc = mockRenderer.nodeCircles[0];
     test.equal(nc.id, "placeholder-cluster1", "The node circle should be the placeholder for cluster1");
+    test.equal(nc.data.visCluster, cluster1, "Data for the placeholder node should contain the actual visCluster");
+    test.equal(nc.data.visNodes.length, 2, "Data for the placeholder node should contain the two visNodes");
+});
+
+Tinytest.add(testLevel + "Simple expanded cluster test", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    var graphVis = new GraphVis(mockRenderer, {});
+    
+    var node1 = new VisNode("node1", null, "cluster1", null, null);
+    var node2 = new VisNode("node2", null, "cluster1", null, null);
+    var cluster1 = new VisCluster("cluster1", null, false);
+
+    // Execute
+    graphVis.update([node1, node2], [], [cluster1]);
+    
+    // Verify
+    test.equal(mockRenderer.nodeCircles.length, 2, "Our two nodes should be visible");
+    test.equal(mockRenderer.clusterHulls.length, 1, "Our cluster hull should be visible");
+    
+    var nc0 = mockRenderer.nodeCircles[0];
+    test.equal(nc0.id, "node1", "The node circle should be the placeholder for cluster1");
+
+    var nc1 = mockRenderer.nodeCircles[1];
+    test.equal(nc1.id, "node2", "The node circle should be the placeholder for cluster1");
+
+    var ch = mockRenderer.clusterHulls[0];
+    test.equal(ch.id, "cluster1", "The hull should represent cluster1");
+    test.equal(ch.visNodes.length, 2, "The hull should contain both our nodes");
+    console.log(ch);
 });
 
 

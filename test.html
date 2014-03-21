@@ -39,11 +39,12 @@ svg {
     $(function () {
         var svgRenderer = new SvgRenderer($("#graph-vis-container"), {});
         var graphVis = new GraphVis(svgRenderer, {});
-        var i;
 
         // Allow access from console:
         window.svgRenderer = svgRenderer;
         window.graphVis = graphVis;
+
+        var i;
 
         var clusters = [];
         for (i = 0; i < 5; i++) {
