@@ -239,6 +239,9 @@ SvgRenderer = function (containerElement, options) {
         
         link
             .attr("d", function (d) { return makeLinkPath(d, xScale, yScale) });
+        
+        if (rescale)
+            link.style("stroke-width", function (d) { return d.thickness; })
         //[cf]
         //[of]:        Nodes
         //[c]Nodes
@@ -303,6 +306,8 @@ GraphVis = function (renderer, options) {
     var labelTexts = [];
     
     var force;
+
+    var colors = d3.scale.category10();
     
     //[of]:    function initialize() {
     function initialize() {
@@ -313,10 +318,11 @@ GraphVis = function (renderer, options) {
         d3.select(renderer.containerElement()[0]).call(d3.behavior.zoom().x(xScale).y(yScale).scaleExtent([0.25, 4]).on("zoom", zoom));
     }
     //[cf]
+
     //[of]:    function clusterHullFromVisCluster(visCluster) {
     function clusterHullFromVisCluster(visCluster) {
-        var color = "#f00";
-        var borderColor = "#800";
+        var color = colors(visCluster.id);
+        var borderColor = d3.rgb(color).darker(1);
         var opacity = 0.2;
         var hoverText = "";
     
@@ -342,19 +348,19 @@ GraphVis = function (renderer, options) {
         }
         
         var radius = 10;
-        var color = "#f00";
-        var borderColor = "#800";
+        var color = colors(visNode.clusterId);
+        var borderColor = d3.rgb(color).darker(1);
         var opacity = 1;
         var hoverText = "";
         
-        return new NodeCircle(visNode.id, visNode.data, x, y, radius, color, borderColor, opacity, hoverText, fixed);
+        return new NodeCircle(visNode.id, visNode, x, y, radius, color, borderColor, opacity, hoverText, fixed);
     }
     //[cf]
     //[of]:    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes) {
     function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes) {
         var radius = 20;
-        var color = "#0f0";
-        var borderColor = "#080";
+        var color = colors(visCluster.id);
+        var borderColor = d3.rgb(color).darker(1);
         var opacity = 1;
         var hoverText = "";
     
@@ -382,7 +388,7 @@ GraphVis = function (renderer, options) {
         var hoverText = "";
     
         var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
-            visLink.data, 
+            visLink, 
             sourceNodeCircle, 
             targetNodeCircle, 
             thickness, 
@@ -399,6 +405,9 @@ GraphVis = function (renderer, options) {
 
     //[of]:    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
     this.update = function (visNodes, visLinks, visClusters) {
+        //[of]:    Create cluster hulls
+        //[c]Create cluster hulls
+        
         var newClusterHulls = [];   // We'll only create hulls for expanded clusters
         var collapsedClusters = {}  // Collapsed ones go in here to turn into placeholder NodeCircles
         _.each(visClusters, function (vc) {
@@ -407,6 +416,9 @@ GraphVis = function (renderer, options) {
             else
                 collapsedClusters[vc.id] = [];
         });
+        //[cf]
+        //[of]:    Create node circles
+        //[c]Create node circles
         
         var newNodeCircles = [];
         _.each(visNodes, function (visNode) {
@@ -433,6 +445,9 @@ GraphVis = function (renderer, options) {
             var visCluster = _.find(visClusters, function (vc) { return vc.id === clusterId; });
             newNodeCircles.push(nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes));
         });
+        //[cf]
+        //[of]:    Create link lines
+        //[c]Create link lines
         
         var newLinkLines = [];
         _.each(visLinks, function (visLink) {
@@ -443,11 +458,11 @@ GraphVis = function (renderer, options) {
                 throw "Link " + visLink.id + " refers to a source node '" + visLink.sourceNodeId + "' that wasn't found";
             if (!targetVisNode)
                 throw "Link " + visLink.id + " refers to a target node '" + visLink.targetNodeId + "' that wasn't found";
-    
+        
             var sourceVisCluster, targetVisCluster;
             if (sourceVisNode.clusterId)
                 sourceVisCluster = _.find(visClusters, function (vc) { return vc.id === sourceVisNode.clusterId; });
-    
+        
             if (targetVisNode.clusterId)
                 targetVisCluster = _.find(visClusters, function (vc) { return vc.id === targetVisNode.clusterId; });
             
@@ -471,7 +486,8 @@ GraphVis = function (renderer, options) {
                         
             newLinkLines.push(linkLine);
         });
-    
+        
+        //[cf]
     
         var newLabelTexts = [];
         
@@ -484,6 +500,63 @@ GraphVis = function (renderer, options) {
     };
     //[cf]
 
+    //[of]:    function cluster(alpha) {
+    function cluster(alpha) {
+        return function(d) {
+            if (d.id.indexOf("placeholder") === 0) return;
+            if (!d.data.clusterId) return;
+            
+            var centralClusterNode = _.find(nodeCircles, function (nc) { return nc.data.clusterId === d.data.clusterId; }); // For now, just use the first one found
+            if (centralClusterNode === d) return;
+            var x = d.x - centralClusterNode.x,
+                y = d.y - centralClusterNode.y,
+                l = Math.sqrt(x * x + y * y),
+                r = d.radius + centralClusterNode.radius;
+            if (l != r) {
+                l = (l - r) / l * alpha;
+                d.x -= x *= l;
+                d.y -= y *= l;
+                centralClusterNode.x += x;
+                centralClusterNode.y += y;
+            }
+        };
+    }
+    //[cf]
+    //[of]:    function collide(alpha) {
+    function collide(alpha) {
+        var padding = 1.5; // separation between same-color nodes
+        var clusterPadding = 6; // separation between different-color nodes
+        var maxRadius = 12;
+     
+        var quadtree = d3.geom.quadtree(nodeCircles);
+        return function(d) {
+            var r = d.radius + maxRadius + Math.max(padding, clusterPadding),
+                nx1 = d.x - r,
+                nx2 = d.x + r,
+                ny1 = d.y - r,
+                ny2 = d.y + r;
+    
+            quadtree.visit(function(quad, x1, y1, x2, y2) {
+                if (quad.point && (quad.point !== d)) {
+                    var x = d.x - quad.point.x,
+                        y = d.y - quad.point.y,
+                        l = Math.sqrt(x * x + y * y),
+                        r = d.radius + quad.point.radius + (d.data.clusterId === quad.point.data.clusterId ? padding : clusterPadding);
+    
+                    if (l < r) {
+                        l = (l - r) / l * alpha;
+                        d.x -= x *= l;
+                        d.y -= y *= l;
+                        quad.point.x += x;
+                        quad.point.y += y;
+                    }
+                }
+                return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
+            });
+        };
+    }
+    //[cf]
+
     //[of]:    this.startForce = function () {
     this.startForce = function () {
         force = d3.layout.force()
@@ -491,6 +564,8 @@ GraphVis = function (renderer, options) {
             .links(linkLines)
             .size([renderer.width(), renderer.height()])
             .on("tick", function (e) {
+                _(nodeCircles).each(cluster(10 * e.alpha * e.alpha));
+                _(nodeCircles).each(collide(.5));
                 renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, false);
             })
             .start();
