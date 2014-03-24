@@ -44,10 +44,11 @@ LabelText = function (id, data, text, x, y, fontSize, color, borderColor, opacit
     this.hoverText = hoverText;
 };
 
-ClusterHull = function (id, data, visNodes, color, borderColor, opacity, hoverText) {
+ClusterHull = function (id, data, visNodes, nodeCircles, color, borderColor, opacity, hoverText) {
     this.id = id;
     this.data = data;
     this.visNodes = visNodes;
+    this.nodeCircles = nodeCircles;
     this.color = color;
     this.borderColor = borderColor;
     this.opacity = opacity;
@@ -64,6 +65,27 @@ SvgRenderer = function (containerElement, options) {
     
     var width = containerElement.width();
     var height = containerElement.height();
+
+    var clusterCurve = d3.svg.line()
+        .interpolate("cardinal-closed")
+        .tension(.85);
+
+    function makeHull(d, xScale, yScale) {
+        var nodes = d.nodeCircles;
+        var nodePoints = [];
+
+        _(nodes).each(function (n) {
+            var offset = n.radius || 5;
+            var x = n.x || 0;
+            var y = n.y || 0;
+            nodePoints.push([xScale(x - offset), yScale(y - offset)]);
+            nodePoints.push([xScale(x - offset), yScale(y + offset)]);
+            nodePoints.push([xScale(x + offset), yScale(y - offset)]);
+            nodePoints.push([xScale(x + offset), yScale(y + offset)]);
+        });
+
+        return clusterCurve(d3.geom.hull(nodePoints));
+    }
 
     this.containerElement = function () { return containerElement; };
     this.width = function () { return width; };
@@ -88,6 +110,38 @@ SvgRenderer = function (containerElement, options) {
     this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, transitionDuration) {
         transitionDuration = transitionDuration === undefined ? 250 : transitionDuration;
         
+        //[of]:        Clusters
+        //[c]Clusters
+        
+        var cluster = layers.clusters.selectAll("path.cluster")
+            .data(clusterHulls, function (d) { return d.id; });
+        
+        cluster.enter()
+            .append("svg:path")
+                .attr("class", "cluster")
+                .attr("data-id", function (d) { return d.id; })
+                .attr("d", function (d) { return makeHull(d, xScale, yScale); })
+                .style("fill", function (d) { return d.color; })
+                .style("stroke", function (d) { return d.borderColor; })
+                .style("opacity", 1e-6)
+            .append("svg:title");
+        
+        cluster.exit().transition().duration(transitionDuration)
+            .style("opacity", 1e-6)
+            .remove();
+        
+        cluster.transition().duration(transitionDuration)
+            .attr("d", function (d) { return makeHull(d, xScale, yScale); })
+            .style("opacity", function (d) { return d.opacity; })
+            .style("fill", function (d) { return d.color; })
+            .style("stroke", function (d) { return d.borderColor; });
+        
+        cluster.select("title")
+            .text(function (d) { return d.hoverText; });    
+        
+        
+        
+        //[cf]
         //[of]:        Links
         //[c]Links
         
@@ -96,11 +150,12 @@ SvgRenderer = function (containerElement, options) {
         
         link.enter()
             .append("svg:path")
-            .attr("class", "link")
-            .attr("data-id", function (d) { return d.id; })
-            .style("stroke-opacity", 1e-6)
-            .style("stroke-width", 1e-6);
-            
+                .attr("class", "link")
+                .attr("data-id", function (d) { return d.id; })
+                .style("stroke-opacity", 1e-6)
+                .style("stroke-width", 1e-6)
+            .append("svg:title");
+        
         link.exit().transition().duration(transitionDuration)
             .style("stroke-opacity", 1e-6)
             .style("stroke-width", 1e-6)
@@ -111,6 +166,9 @@ SvgRenderer = function (containerElement, options) {
             .style("stroke-width", function (d) { return d.thickness; })
             .style("stroke", function (d) { return d.color; });
             
+        link.select("title")
+            .text(function (d) { return d.hoverText; });    
+        
         //[cf]
         //[of]:        Nodes
         //[c]Nodes
@@ -160,6 +218,16 @@ SvgRenderer = function (containerElement, options) {
         
         if (rescale)
             node.attr("r", function (d) { return d.radius; });
+        //[cf]
+        //[of]:        Clusters
+        //[c]Clusters
+        
+        var cluster = layers.clusters.selectAll("path.cluster")
+            .data(clusterHulls, function (d) { return d.id; });
+        
+        cluster
+            .attr("d", function (d) { return makeHull(d, xScale, yScale); })
+        
         //[cf]
     };
     
@@ -225,10 +293,10 @@ GraphVis = function (renderer, options) {
     function clusterHullFromVisCluster(visCluster) {
         var color = "#f00";
         var borderColor = "#800";
-        var opacity = 1;
+        var opacity = 0.2;
         var hoverText = "";
     
-        return new ClusterHull(visCluster.id, visCluster, [], color, borderColor, opacity, hoverText);
+        return new ClusterHull(visCluster.id, visCluster, [], [], color, borderColor, opacity, hoverText);
     }
     
     //[cf]
@@ -297,8 +365,10 @@ GraphVis = function (renderer, options) {
                 var clusterHull = _.find(newClusterHulls, function (ch) { return ch.id === visNode.clusterId; });
                 
                 if (clusterHull) {
+                    var nodeCircle = nodeCircleFromVisNode(visNode);
+                    newNodeCircles.push(nodeCircle);
                     clusterHull.visNodes.push(visNode);
-                    newNodeCircles.push(nodeCircleFromVisNode(visNode));
+                    clusterHull.nodeCircles.push(nodeCircle);
                 } else {
                     if (!collapsedClusters.hasOwnProperty(visNode.clusterId))
                         throw "Node '" + visNode.id + "' refers to a cluster '" + visNode.clusterId + "' that wasn't defined";

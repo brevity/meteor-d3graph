@@ -62,9 +62,35 @@ Tinytest.addAsync(testLevel + "simple update test with one node", function (test
         test.equal(node.attr("cx"), "10", "Node should have the radius we gave it");
         test.equal(node.css("stroke"), "#880000", "Node should have the border color we gave it");
         next();
-    }, 10);
+    }, 20);
 });
 
+Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
+    // Setup
+    var containerElement = $("<div />");
+    var svgRenderer = new SvgRenderer(containerElement, {});
+    var idScale = d3.scale.linear();
+    
+    var visNode = new VisNode("node1", null, null, null, null);
+    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text"); 
+    var clusterHull = new ClusterHull("cluster1", null, [visNode], [nodeCircle], "f88", "#844", 1, "Cluster hover-text");
+    
+    // Execute
+    svgRenderer.update([clusterHull], [], [nodeCircle], [], idScale, idScale, 0);
+    
+    // Verify
+    var clusters = containerElement.find("path.cluster");
+    test.equal(clusters.length, 1, "There should be one cluster hull");
+
+    setTimeout(function () {
+        var cluster = $(clusters[0]);
+        test.equal(cluster.attr("data-id"), "cluster1", "Cluster should have the ID we gave it");
+        test.isTrue(cluster.attr("d").indexOf("M5,5") === 0, "Cluster path should begin with a move to 5,5");
+        test.equal(cluster.css("fill"), "#ff8888", "Node should have the border color we gave it");
+        next();
+    }, 20);
+    
+});
 //[cf]
 //[of]:GraphVis
 //[c]GraphVis
@@ -173,9 +199,13 @@ Tinytest.add(testLevel + "Simple expanded cluster test", function (test) {
     var ch = mockRenderer.clusterHulls[0];
     test.equal(ch.id, "cluster1", "The hull should represent cluster1");
     test.equal(ch.visNodes.length, 2, "The hull should contain both our nodes");
+    test.equal(ch.visNodes[0], node1, "The first visNode should be our node1");
+    
+    test.equal(ch.nodeCircles.length, 2, "The hull should contain the two nodeCircles");
+    test.instanceOf(ch.nodeCircles[0], NodeCircle, "cluster nodecircles should actually be nodecircles");
+    test.equal(ch.nodeCircles[0].id, "node1", "The first nodeCircle should refer to node1");
     console.log(ch);
 });
-
 
 Tinytest.add(testLevel + "Zoom test", function (test) {
     // Setup
