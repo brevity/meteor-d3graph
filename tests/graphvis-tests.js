@@ -41,30 +41,6 @@ Tinytest.add(testLevel + "Constructor test", function (test) {
     test.equal($(layers[4]).attr("id"), "ui", "The top layer should be the 'ui' layer");
 });
 
-Tinytest.addAsync(testLevel + "simple update test with one node", function (test, next) {
-    // Setup
-    var containerElement = $("<div />");
-    var svgRenderer = new SvgRenderer(containerElement, {});
-    var idScale = d3.scale.linear();
-    
-    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text"); 
-    
-    // Execute
-    svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 0);
-    
-    // Verify
-    var nodes = containerElement.find("circle.node");
-    test.equal(nodes.length, 1, "There should be one node");
-
-    setTimeout(function () {
-        var node = $(nodes[0]);
-        test.equal(node.attr("data-id"), "node1", "Node should have the ID we gave it");
-        test.equal(node.attr("cx"), "10", "Node should have the radius we gave it");
-        test.equal(node.css("stroke"), "#880000", "Node should have the border color we gave it");
-        next();
-    }, 20);
-});
-
 Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
     // Setup
     var containerElement = $("<div />");
@@ -90,6 +66,60 @@ Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
         next();
     }, 20);
     
+});
+
+Tinytest.addAsync(testLevel + "link test", function (test, next) {
+    // Setup
+    var containerElement = $("<div />");
+    var svgRenderer = new SvgRenderer(containerElement, {});
+    var idScale = d3.scale.linear();
+    
+    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, ""); 
+    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 1, ""); 
+    
+    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, false, null, "Hover text");
+    
+    // Execute
+    svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 0);
+    
+    // Verify
+    var links = containerElement.find("path.link");
+    test.equal(links.length, 1, "There should be one link");
+
+    console.log(links[0]);
+
+    setTimeout(function () {
+        var link = $(links[0]);
+        test.equal(link.attr("data-id"), "node1->node2", "Link should have the ID we gave it");
+        test.equal(link.css("stroke"), "#ff0000", "Link should have the color we gave it");
+        test.equal(link.attr("d"), "M 10 10 L 20 20", "Link path should be a straight line from node1 to node2");
+        next();
+    }, 20);
+});
+
+
+Tinytest.addAsync(testLevel + "node test", function (test, next) {
+    // Setup
+    var containerElement = $("<div />");
+    var svgRenderer = new SvgRenderer(containerElement, {});
+    var idScale = d3.scale.linear();
+    
+    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text"); 
+    
+    // Execute
+    svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 0);
+    
+    // Verify
+    var nodes = containerElement.find("circle.node");
+    test.equal(nodes.length, 1, "There should be one node");
+
+    setTimeout(function () {
+        var node = $(nodes[0]);
+        test.equal(node.attr("data-id"), "node1", "Node should have the ID we gave it");
+        test.equal(node.attr("cx"), "10", "Node should have the radius we gave it");
+        test.equal(node.css("stroke"), "#880000", "Node should have the border color we gave it");
+        next();
+    }, 20);
 });
 //[cf]
 //[of]:GraphVis
@@ -125,7 +155,7 @@ Tinytest.add(testLevel + "Simple update test", function (test) {
     test.equal(nc.id, "node1", "The NodeCircle should have the same id as the VisNode");
 });
 
-Tinytest.add(testLevel + "Update with some complexity", function (test) {
+Tinytest.add(testLevel + "Re-update test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -153,7 +183,7 @@ Tinytest.add(testLevel + "Update with some complexity", function (test) {
     test.equal(nc1.y, 200, "node3 should be fixed to 100, 200");
 });
 
-Tinytest.add(testLevel + "Simple collapsed cluster test", function (test) {
+Tinytest.add(testLevel + "Collapsed cluster test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -174,7 +204,7 @@ Tinytest.add(testLevel + "Simple collapsed cluster test", function (test) {
     test.equal(nc.data.visNodes.length, 2, "Data for the placeholder node should contain the two visNodes");
 });
 
-Tinytest.add(testLevel + "Simple expanded cluster test", function (test) {
+Tinytest.add(testLevel + "Expanded cluster test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -205,6 +235,27 @@ Tinytest.add(testLevel + "Simple expanded cluster test", function (test) {
     test.instanceOf(ch.nodeCircles[0], NodeCircle, "cluster nodecircles should actually be nodecircles");
     test.equal(ch.nodeCircles[0].id, "node1", "The first nodeCircle should refer to node1");
     console.log(ch);
+});
+
+Tinytest.add(testLevel + "Link test", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    var graphVis = new GraphVis(mockRenderer, {});
+    
+    var node1 = new VisNode("node1", null, null, null, null);
+    var node2 = new VisNode("node2", null, null, null, null);
+    var link = new VisLink(null, null, "node1", "node2");
+    
+    // Execute
+    graphVis.update([node1, node2], [link], []);
+    
+    // Verify
+    test.equal(mockRenderer.linkLines.length, 1, "There should be one LinkLine representing our one VisLink");
+    
+    var ll = mockRenderer.linkLines[0];
+    test.equal(ll.id, "node1->node2", "The link line should have the correct generated id");
+    test.equal(ll.source, mockRenderer.nodeCircles[0], "The source should be node circle #1");
+    test.equal(ll.target, mockRenderer.nodeCircles[1], "The target should be node circle #2");
 });
 
 Tinytest.add(testLevel + "Zoom test", function (test) {

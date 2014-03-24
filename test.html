@@ -61,10 +61,15 @@ svg {
             var n = new VisNode("node" + (i + 1), null, clusterId);
             nodes.push(n);
         }
-
-        var link1 = new VisLink("link1", null, "node1", "node2");
-        var link2 = new VisLink("link2", null, "node2", "node3");
-        var links = [link1, link2];
+        
+        var links = [];
+        for (i = 0; i < 30; i++) {
+            var n1 = nodes[Math.floor(Math.random() * nodes.length)];
+            var n2 = nodes[Math.floor(Math.random() * nodes.length)];
+            
+            var l = new VisLink(n1.id + "->" + n2.id, null, n1.id, n2.id);
+            links.push(l);
+        }
 
         graphVis.update(nodes, links, clusters);
         graphVis.startForce();
