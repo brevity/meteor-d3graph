@@ -103,6 +103,7 @@ SvgRenderer = function (containerElement, options) {
     this.width = function () { return width; };
     this.height = function () { return height; };
 
+    //[of]:    function initialize() {
     function initialize() {
         svg = d3.select(containerElement[0]).append("svg")
             .attr("width", width)
@@ -117,9 +118,10 @@ SvgRenderer = function (containerElement, options) {
                 .attr("class", "layer");
         });
     }
+    //[cf]
     
     // transitionDuration should only be used by tests/debugging
-    this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, transitionDuration) {
+    this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration) {
         transitionDuration = transitionDuration === undefined ? 250 : transitionDuration;
         
         //[of]:        Clusters
@@ -175,7 +177,7 @@ SvgRenderer = function (containerElement, options) {
         
         link.transition().duration(transitionDuration)
             .style("stroke-opacity", function (d) { return d.opacity; })
-            .style("stroke-width", function (d) { return d.thickness; })
+            .style("stroke-width", function (d) { return d.thickness * radiusFactor; })
             .style("stroke", function (d) { return d.color; });
         
         link
@@ -199,7 +201,6 @@ SvgRenderer = function (containerElement, options) {
                 .attr("cy", function (d) { return yScale(d.y); })
                 .attr("r", 1e-6)
                 .style("opacity", 1e-6)
-                .style("stroke-width", 2)
             .append("svg:title");
         
         node.exit().transition().duration(transitionDuration)
@@ -210,7 +211,8 @@ SvgRenderer = function (containerElement, options) {
         node.transition().duration(transitionDuration)
             .attr("cx", function (d) { return xScale(d.x); })
             .attr("cy", function (d) { return yScale(d.y); })
-            .attr("r", function (d) { return d.radius; })
+            .attr("r", function (d) { return d.radius * radiusFactor; })
+            .style("stroke-width", function (d) { return 2 * radiusFactor; })
             .style("opacity", function (d) { return d.opacity; })
             .style("fill", function (d) { return d.color; })
             .style("stroke", function (d) { return d.borderColor; });
@@ -220,7 +222,8 @@ SvgRenderer = function (containerElement, options) {
         //[cf]
     };
 
-    this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, rescale) {
+    // radiusFactor can be null which means radii (and link thickness etc.) won't be updated, *only* positions.
+    this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor) {
         //[of]:        Clusters
         //[c]Clusters
         
@@ -240,8 +243,8 @@ SvgRenderer = function (containerElement, options) {
         link
             .attr("d", function (d) { return makeLinkPath(d, xScale, yScale) });
         
-        if (rescale)
-            link.style("stroke-width", function (d) { return d.thickness; })
+        if (radiusFactor)
+            link.style("stroke-width", function (d) { return d.thickness * radiusFactor; })
         //[cf]
         //[of]:        Nodes
         //[c]Nodes
@@ -253,8 +256,8 @@ SvgRenderer = function (containerElement, options) {
             .attr("cx", function (d) { return xScale(d.x); })
             .attr("cy", function (d) { return yScale(d.y); });
         
-        if (rescale)
-            node.attr("r", function (d) { return d.radius; });
+        if (radiusFactor)
+            node.attr("r", function (d) { return d.radius * radiusFactor; });
         //[cf]
     };
     
@@ -299,6 +302,20 @@ GraphVis = function (renderer, options) {
     var yScale = d3.scale.linear()
         .domain([0, renderer.height()])
         .range([0, renderer.height()]);
+
+    var zoomDensenessScale = d3.scale.linear().domain([0.25, 4]).range([0.5, 2]);
+    var radiusFactor = zoomDensenessScale(1);
+
+    var zoomBehavior = d3.behavior.zoom()
+        .x(xScale)
+        .y(yScale)
+        .scaleExtent([0.25, 4])
+        .on("zoom", function () { 
+            radiusFactor = zoomDensenessScale(zoomBehavior.scale());
+            renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+
+            if (force) force.resume();
+        });
     
     var clusterHulls = [];
     var linkLines = [];
@@ -311,11 +328,7 @@ GraphVis = function (renderer, options) {
     
     //[of]:    function initialize() {
     function initialize() {
-        function zoom() { 
-            renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, true); 
-        }
-        
-        d3.select(renderer.containerElement()[0]).call(d3.behavior.zoom().x(xScale).y(yScale).scaleExtent([0.25, 4]).on("zoom", zoom));
+        d3.select(renderer.containerElement()[0]).call(zoomBehavior);
     }
     //[cf]
 
@@ -496,7 +509,7 @@ GraphVis = function (renderer, options) {
         labelTexts = newLabelTexts;
         clusterHulls = newClusterHulls;
     
-        renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale);
+        renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
     };
     //[cf]
 
@@ -504,14 +517,14 @@ GraphVis = function (renderer, options) {
     function cluster(alpha) {
         return function(d) {
             if (d.id.indexOf("placeholder") === 0) return;
-            if (!d.data.clusterId) return;
+            //if (!d.data.clusterId) return;
             
             var centralClusterNode = _.find(nodeCircles, function (nc) { return nc.data.clusterId === d.data.clusterId; }); // For now, just use the first one found
             if (centralClusterNode === d) return;
             var x = d.x - centralClusterNode.x,
                 y = d.y - centralClusterNode.y,
                 l = Math.sqrt(x * x + y * y),
-                r = d.radius + centralClusterNode.radius;
+                r = ((d.radius + centralClusterNode.radius) / zoomBehavior.scale()) * radiusFactor;
             if (l != r) {
                 l = (l - r) / l * alpha;
                 d.x -= x *= l;
@@ -530,7 +543,7 @@ GraphVis = function (renderer, options) {
      
         var quadtree = d3.geom.quadtree(nodeCircles);
         return function(d) {
-            var r = d.radius + maxRadius + Math.max(padding, clusterPadding),
+            var r = ((d.radius + maxRadius + Math.max(padding, clusterPadding)) / zoomBehavior.scale()) * radiusFactor,
                 nx1 = d.x - r,
                 nx2 = d.x + r,
                 ny1 = d.y - r,
@@ -541,7 +554,7 @@ GraphVis = function (renderer, options) {
                     var x = d.x - quad.point.x,
                         y = d.y - quad.point.y,
                         l = Math.sqrt(x * x + y * y),
-                        r = d.radius + quad.point.radius + (d.data.clusterId === quad.point.data.clusterId ? padding : clusterPadding);
+                        r = ((d.radius + quad.point.radius + (d.data.clusterId === quad.point.data.clusterId ? padding : clusterPadding)) / zoomBehavior.scale()) * radiusFactor;
     
                     if (l < r) {
                         l = (l - r) / l * alpha;
@@ -564,9 +577,9 @@ GraphVis = function (renderer, options) {
             .links(linkLines)
             .size([renderer.width(), renderer.height()])
             .on("tick", function (e) {
-                _(nodeCircles).each(cluster(10 * e.alpha * e.alpha));
+                _(nodeCircles).each(cluster(0.2 * e.alpha));
                 _(nodeCircles).each(collide(.5));
-                renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, false);
+                renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, null);
             })
             .start();
     };
@@ -574,6 +587,5 @@ GraphVis = function (renderer, options) {
 
     initialize();
 };
-
 
 //[cf]

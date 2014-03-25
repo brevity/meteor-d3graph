@@ -17,8 +17,8 @@ function makeMockRenderer() {
         width: function () { return 960; },
         height: function () { return 600; },
         containerElement: function () { return containerElement; },
-        update: makeMockFunction(["clusterHulls", "linkLines", "nodeCircles", "labelTexts", "xScale", "yScale", "transitionDuration"]),
-        updatePositions: makeMockFunction(["clusterHulls", "linkLines", "nodeCircles", "labelTexts", "xScale", "yScale", "rescale"])
+        update: makeMockFunction(["clusterHulls", "linkLines", "nodeCircles", "labelTexts", "xScale", "yScale", "radiusFactor", "transitionDuration"]),
+        updatePositions: makeMockFunction(["clusterHulls", "linkLines", "nodeCircles", "labelTexts", "xScale", "yScale", "radiusFactor"])
     };
 }
 //[cf]
@@ -52,7 +52,7 @@ Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
     var clusterHull = new ClusterHull("cluster1", null, [visNode], [nodeCircle], "f88", "#844", 1, "Cluster hover-text");
     
     // Execute
-    svgRenderer.update([clusterHull], [], [nodeCircle], [], idScale, idScale, 0);
+    svgRenderer.update([clusterHull], [], [nodeCircle], [], idScale, idScale, 1, 0);
     
     // Verify
     var clusters = containerElement.find("path.cluster");
@@ -80,7 +80,7 @@ Tinytest.addAsync(testLevel + "link test", function (test, next) {
     var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, false, null, "Hover text");
     
     // Execute
-    svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 0);
+    svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 1, 0);
     
     // Verify
     var links = containerElement.find("path.link");
@@ -107,7 +107,7 @@ Tinytest.addAsync(testLevel + "node test", function (test, next) {
     var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text"); 
     
     // Execute
-    svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 0);
+    svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 1, 0);
     
     // Verify
     var nodes = containerElement.find("circle.node");
