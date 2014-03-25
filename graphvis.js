@@ -4,7 +4,7 @@
 //[of]:Classes fed to renderer
 //[c]Classes fed to renderer
 
-NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hoverText, fixed) {
+NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hoverText, fixed, eventHandlers) {
     this.id = id;
     this.data = data;
     this.x = x; // Note: x and y are NOT scaled to screen space because they are manipulated by d3.force
@@ -15,9 +15,10 @@ NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hove
     this.opacity = opacity;
     this.hoverText = hoverText;
     this.fixed = fixed;
+    this.eventHandlers = eventHandlers;
 };
 
-LinkLine = function (id, data, source, target, thickness, color, opacity, markerStart, markerEnd, dashPattern, hoverText) {
+LinkLine = function (id, data, source, target, thickness, color, opacity, markerStart, markerEnd, dashPattern, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
     this.source = source;   // These should be NodeCircle instances
@@ -29,9 +30,10 @@ LinkLine = function (id, data, source, target, thickness, color, opacity, marker
     this.markerEnd = markerEnd;
     this.dashPattern = dashPattern;
     this.hoverText = hoverText;
+    this.eventHandlers = eventHandlers;
 };
 
-LabelText = function (id, data, text, x, y, fontSize, color, borderColor, opacity, hoverText) {
+LabelText = function (id, data, text, x, y, fontSize, color, borderColor, opacity, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
     this.text = text;
@@ -42,9 +44,10 @@ LabelText = function (id, data, text, x, y, fontSize, color, borderColor, opacit
     this.borderColor = borderColor;
     this.opacity = opacity;
     this.hoverText = hoverText;
+    this.eventHandlers = eventHandlers;
 };
 
-ClusterHull = function (id, data, visNodes, nodeCircles, color, borderColor, opacity, hoverText) {
+ClusterHull = function (id, data, visNodes, nodeCircles, color, borderColor, opacity, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
     this.visNodes = visNodes;
@@ -53,6 +56,7 @@ ClusterHull = function (id, data, visNodes, nodeCircles, color, borderColor, opa
     this.borderColor = borderColor;
     this.opacity = opacity;
     this.hoverText = hoverText;
+    this.eventHandlers = eventHandlers;
 };
 
 //[cf]
@@ -130,14 +134,15 @@ SvgRenderer = function (containerElement, options) {
         var cluster = layers.clusters.selectAll("path.cluster")
             .data(clusterHulls, function (d) { return d.id; });
         
-        cluster.enter()
+        var clusterEnter = cluster.enter()
             .append("svg:path")
                 .attr("class", "cluster")
                 .attr("data-id", function (d) { return d.id; })
                 .style("fill", function (d) { return d.color; })
                 .style("stroke", function (d) { return d.borderColor; })
-                .style("opacity", 1e-6)
-            .append("svg:title");
+                .style("opacity", 1e-6);
+        
+        clusterEnter.append("svg:title");
         
         cluster.exit().transition().duration(transitionDuration)
             .style("opacity", 1e-6)
@@ -189,11 +194,16 @@ SvgRenderer = function (containerElement, options) {
         //[of]:        Nodes
         //[c]Nodes
         
+        // We want to know all the different types of events that exist in any of the NodeCircle's. This cryptic oneliner does that:
+        var allNodeEvents = _.uniq(_.flatten(_.map(_.pluck(nodeCircles, "eventHandlers"), function (eh) { return _.keys(eh); })));
+        console.log("All node events: ", allNodeEvents);
+        
         var node = layers.nodes.selectAll("circle.node")
             .data(nodeCircles, function (d) { return d.id; });
         
-        node.enter()
-            .append("svg:circle")
+        var nodeEnter = node.enter().append("svg:circle");
+        
+        nodeEnter
                 .attr("class", "node")
                 .attr("data-id", function (d) { return d.id; })
                 .attr("cx", function (d) { return xScale(d.x); })
@@ -201,6 +211,13 @@ SvgRenderer = function (containerElement, options) {
                 .attr("r", 1e-6)
                 .style("opacity", 1e-6)
             .append("svg:title");
+        
+        _.each(allNodeEvents, function (ne) {
+            nodeEnter.on(ne, function (d) { 
+                if (d.eventHandlers.hasOwnProperty(ne))
+                    d.eventHandlers[ne](d); 
+            });
+        });
         
         node.exit().transition().duration(transitionDuration)
             .attr("r", 1e-6)
@@ -336,7 +353,7 @@ GraphVis = function (renderer, options) {
         var opacity = 0.2;
         var hoverText = "";
     
-        return new ClusterHull(visCluster.id, visCluster, [], [], color, borderColor, opacity, hoverText);
+        return new ClusterHull(visCluster.id, visCluster, [], [], color, borderColor, opacity, hoverText, {});
     }
     
     //[cf]
@@ -363,7 +380,7 @@ GraphVis = function (renderer, options) {
         var opacity = 1;
         var hoverText = "";
         
-        return new NodeCircle(visNode.id, visNode, x, y, radius, color, borderColor, opacity, hoverText, fixed);
+        return new NodeCircle(visNode.id, visNode, x, y, radius, color, borderColor, opacity, hoverText, fixed, {});
     }
     //[cf]
     //[of]:    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes) {
@@ -384,7 +401,12 @@ GraphVis = function (renderer, options) {
             visNodes: clusterVisNodes
         };
         
-        return new NodeCircle("placeholder-" + visCluster.id, data, x, y, radius, color, borderColor, opacity, hoverText, false);
+        var eventHandlers = {
+            "click": function () { console.log("Placeholder was clicked"); },
+            "mouseover": function (d) { console.log("placeholder was hovered"); }
+        };
+        
+        return new NodeCircle("placeholder-" + visCluster.id, data, x, y, radius, color, borderColor, opacity, hoverText, false, eventHandlers);
     }
     //[cf]
     //[of]:    function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {
@@ -407,7 +429,8 @@ GraphVis = function (renderer, options) {
             markerStart, 
             markerEnd, 
             dashPattern, 
-            hoverText);
+            hoverText,
+            {});
     
         return linkLine;
     }
@@ -574,10 +597,37 @@ GraphVis = function (renderer, options) {
             .links(linkLines)
             .size([renderer.width(), renderer.height()])
             .on("tick", function (e) {
-                _(nodeCircles).each(cluster(0.2 * e.alpha));
+                _(nodeCircles).each(cluster(0.6 * e.alpha));
                 _(nodeCircles).each(collide(.5));
                 renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
             })
+            .linkDistance(function(l, i) {
+                var n1 = l.source, n2 = l.target;
+                // larger distance for bigger groups:
+                // both between single nodes and _other_ groups (where size of own node group still counts),
+                // and between two group nodes.
+                //
+                // reduce distance for groups with very few outer links,
+                // again both in expanded and grouped form, i.e. between individual nodes of a group and
+                // nodes of another group or other group node or between two group nodes.
+                //
+                // The latter was done to keep the single-link groups ('blue', rose, ...) close.
+    
+    /*            return 30 + Math.min(
+                    20 * Math.min(
+                        (n1.size || (n1.clusterId != n2.clusterId ? n1.group_data.size : 0)),
+                        (n2.size || (n1.clusterId != n2.clusterId ? n2.group_data.size : 0))),
+                    -30 + 30 * Math.min(
+                        (n1.link_count || (n1.clusterId != n2.clusterId ? n1.group_data.link_count : 0)),
+                        (n2.link_count || (n1.clusterId != n2.clusterId ? n2.group_data.link_count : 0))),
+                    100);*/
+                
+                return n1.clusterId === n2.clusterId ? 1 : 5;
+            })
+            .linkStrength(function(l, i) { return 1; })
+            .gravity(0.5)   // gravity+charge tweaked to ensure good 'grouped' view (e.g. green group not smack between blue&orange, ...
+            .charge(-600)    // ... charge is important to turn single-linked groups to the outside
+            .friction(0.5)   // friction adjusted to get dampened display: less bouncy bouncy ball [Swedish Chef, anyone?]
             .start();
     };
     //[cf]

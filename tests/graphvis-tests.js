@@ -27,6 +27,7 @@ function makeMockRenderer() {
 
 var testLevel = "meteor-d3graph tests - SvgRenderer - ";
 
+//[of]:Tinytest.add(testLevel + "Constructor test", function (test) {
 Tinytest.add(testLevel + "Constructor test", function (test) {
     // Setup
     var containerElement = $("<div />");
@@ -41,6 +42,8 @@ Tinytest.add(testLevel + "Constructor test", function (test) {
     test.equal($(layers[4]).attr("id"), "ui", "The top layer should be the 'ui' layer");
 });
 
+//[cf]
+//[of]:Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
 Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
     // Setup
     var containerElement = $("<div />");
@@ -48,8 +51,8 @@ Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
     var idScale = d3.scale.linear();
     
     var visNode = new VisNode("node1", null, null, null, null);
-    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text"); 
-    var clusterHull = new ClusterHull("cluster1", null, [visNode], [nodeCircle], "f88", "#844", 1, "Cluster hover-text");
+    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text", false, {}); 
+    var clusterHull = new ClusterHull("cluster1", null, [visNode], [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
     
     // Execute
     svgRenderer.update([clusterHull], [], [nodeCircle], [], idScale, idScale, 1, 0);
@@ -68,16 +71,18 @@ Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
     
 });
 
+//[cf]
+//[of]:Tinytest.addAsync(testLevel + "link test", function (test, next) {
 Tinytest.addAsync(testLevel + "link test", function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, ""); 
-    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 1, ""); 
+    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, {}); 
+    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 1, "", false, {}); 
     
-    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, false, null, "Hover text");
+    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, false, null, "Hover text", {});
     
     // Execute
     svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 1, 0);
@@ -98,13 +103,15 @@ Tinytest.addAsync(testLevel + "link test", function (test, next) {
 });
 
 
+//[cf]
+//[of]:Tinytest.addAsync(testLevel + "node test", function (test, next) {
 Tinytest.addAsync(testLevel + "node test", function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text"); 
+    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text", false, {}); 
     
     // Execute
     svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 1, 0);
@@ -122,11 +129,39 @@ Tinytest.addAsync(testLevel + "node test", function (test, next) {
     }, 20);
 });
 //[cf]
+//[of]:Tinytest.addAsync(testLevel + "node event handler test", function (test, next) {
+Tinytest.add(testLevel + "node event handler test", function (test, next) {
+    // Setup
+    var containerElement = $("<div />");
+    var svgRenderer = new SvgRenderer(containerElement, {});
+    var idScale = d3.scale.linear();
+    
+    var success = false;
+    var eventHandlers = { "click" : function () { success = true; } };
+    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, eventHandlers);
+    svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 1, 0);
+    var node = $(containerElement.find("circle.node")[0]);
+
+    var evt = document.createEvent('MouseEvents');
+    evt.initEvent('click', true, false);
+    
+    // Execute
+    node[0].dispatchEvent(evt);
+    
+    // Verify
+    test.isTrue(success, "The click handler should have set the success flag to true");
+});
+//[cf]
+
+
+
+//[cf]
 //[of]:GraphVis
 //[c]GraphVis
 
 testLevel = "meteor-d3graph tests - GraphVis - ";
 
+//[of]:Tinytest.add(testLevel + "Constructor test", function (test) {
 Tinytest.add(testLevel + "Constructor test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
@@ -137,7 +172,8 @@ Tinytest.add(testLevel + "Constructor test", function (test) {
     // Verify
     test.ok();
 });
-
+//[cf]
+//[of]:Tinytest.add(testLevel + "Simple update test", function (test) {
 Tinytest.add(testLevel + "Simple update test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
@@ -154,7 +190,8 @@ Tinytest.add(testLevel + "Simple update test", function (test) {
     var nc = mockRenderer.nodeCircles[0];
     test.equal(nc.id, "node1", "The NodeCircle should have the same id as the VisNode");
 });
-
+//[cf]
+//[of]:Tinytest.add(testLevel + "Re-update test", function (test) {
 Tinytest.add(testLevel + "Re-update test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
@@ -182,7 +219,8 @@ Tinytest.add(testLevel + "Re-update test", function (test) {
     test.equal(nc1.x, 100, "node3 should be fixed to 100, 200");
     test.equal(nc1.y, 200, "node3 should be fixed to 100, 200");
 });
-
+//[cf]
+//[of]:Tinytest.add(testLevel + "Collapsed cluster test", function (test) {
 Tinytest.add(testLevel + "Collapsed cluster test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
@@ -203,7 +241,8 @@ Tinytest.add(testLevel + "Collapsed cluster test", function (test) {
     test.equal(nc.data.visCluster, cluster1, "Data for the placeholder node should contain the actual visCluster");
     test.equal(nc.data.visNodes.length, 2, "Data for the placeholder node should contain the two visNodes");
 });
-
+//[cf]
+//[of]:Tinytest.add(testLevel + "Expanded cluster test", function (test) {
 Tinytest.add(testLevel + "Expanded cluster test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
@@ -236,7 +275,8 @@ Tinytest.add(testLevel + "Expanded cluster test", function (test) {
     test.equal(ch.nodeCircles[0].id, "node1", "The first nodeCircle should refer to node1");
     console.log(ch);
 });
-
+//[cf]
+//[of]:Tinytest.add(testLevel + "Link test", function (test) {
 Tinytest.add(testLevel + "Link test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
@@ -257,7 +297,8 @@ Tinytest.add(testLevel + "Link test", function (test) {
     test.equal(ll.source, mockRenderer.nodeCircles[0], "The source should be node circle #1");
     test.equal(ll.target, mockRenderer.nodeCircles[1], "The target should be node circle #2");
 });
-
+//[cf]
+//[of]:Tinytest.add(testLevel + "Zoom test", function (test) {
 Tinytest.add(testLevel + "Zoom test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
@@ -288,6 +329,7 @@ Tinytest.add(testLevel + "Zoom test", function (test) {
     // Verify
     test.ok(); // Not really, but I can't get the event to trigger a proper zoom....
 });
+//[cf]
 
 
 
