@@ -67,18 +67,18 @@ SvgRenderer = function (containerElement, options) {
     var height = containerElement.height();
 
     //[of]:    function makeHull(d, xScale, yScale) {
-    function makeHull(d, xScale, yScale) {
+    function makeHull(d, xScale, yScale, radiusFactor) {
         var nodes = d.nodeCircles;
         var nodePoints = [];
     
         _(nodes).each(function (n) {
-            var offset = n.radius || 5;
+            var offset = (n.radius || 5) * radiusFactor;
             var x = n.x || 0;
             var y = n.y || 0;
-            nodePoints.push([xScale(x - offset), yScale(y - offset)]);
-            nodePoints.push([xScale(x - offset), yScale(y + offset)]);
-            nodePoints.push([xScale(x + offset), yScale(y - offset)]);
-            nodePoints.push([xScale(x + offset), yScale(y + offset)]);
+            nodePoints.push([xScale(x) - offset, yScale(y) - offset]);
+            nodePoints.push([xScale(x) - offset, yScale(y) + offset]);
+            nodePoints.push([xScale(x) + offset, yScale(y) - offset]);
+            nodePoints.push([xScale(x) + offset, yScale(y) + offset]);
         });
     
         var clusterCurve = d3.svg.line()
@@ -134,7 +134,6 @@ SvgRenderer = function (containerElement, options) {
             .append("svg:path")
                 .attr("class", "cluster")
                 .attr("data-id", function (d) { return d.id; })
-                .attr("d", function (d) { return makeHull(d, xScale, yScale); })
                 .style("fill", function (d) { return d.color; })
                 .style("stroke", function (d) { return d.borderColor; })
                 .style("opacity", 1e-6)
@@ -145,7 +144,7 @@ SvgRenderer = function (containerElement, options) {
             .remove();
         
         cluster.transition().duration(transitionDuration)
-            .attr("d", function (d) { return makeHull(d, xScale, yScale); })
+            .attr("d", function (d) { return makeHull(d, xScale, yScale, radiusFactor); })
             .style("opacity", function (d) { return d.opacity; })
             .style("fill", function (d) { return d.color; })
             .style("stroke", function (d) { return d.borderColor; });
@@ -222,7 +221,6 @@ SvgRenderer = function (containerElement, options) {
         //[cf]
     };
 
-    // radiusFactor can be null which means radii (and link thickness etc.) won't be updated, *only* positions.
     this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor) {
         //[of]:        Clusters
         //[c]Clusters
@@ -231,7 +229,7 @@ SvgRenderer = function (containerElement, options) {
             .data(clusterHulls, function (d) { return d.id; });
         
         cluster
-            .attr("d", function (d) { return makeHull(d, xScale, yScale); })
+            .attr("d", function (d) { return makeHull(d, xScale, yScale, radiusFactor); })
         
         //[cf]
         //[of]:        Links
@@ -241,10 +239,9 @@ SvgRenderer = function (containerElement, options) {
             .data(linkLines, function (d) { return d.id; });
         
         link
-            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale) });
+            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale) })
+            .style("stroke-width", function (d) { return d.thickness * radiusFactor; });
         
-        if (radiusFactor)
-            link.style("stroke-width", function (d) { return d.thickness * radiusFactor; })
         //[cf]
         //[of]:        Nodes
         //[c]Nodes
@@ -254,10 +251,10 @@ SvgRenderer = function (containerElement, options) {
         
         node
             .attr("cx", function (d) { return xScale(d.x); })
-            .attr("cy", function (d) { return yScale(d.y); });
+            .attr("cy", function (d) { return yScale(d.y); })
+            .attr("r", function (d) { return d.radius * radiusFactor; })
+            .style("stroke-width", function (d) { return 2 * radiusFactor; });
         
-        if (radiusFactor)
-            node.attr("r", function (d) { return d.radius * radiusFactor; });
         //[cf]
     };
     
@@ -303,15 +300,15 @@ GraphVis = function (renderer, options) {
         .domain([0, renderer.height()])
         .range([0, renderer.height()]);
 
-    var zoomDensenessScale = d3.scale.linear().domain([0.25, 4]).range([0.5, 2]);
-    var radiusFactor = zoomDensenessScale(1);
+    var zoomDensityScale = d3.scale.linear().domain([0.25, 4]).range([0.5, 2]);
+    var radiusFactor = zoomDensityScale(1);
 
     var zoomBehavior = d3.behavior.zoom()
         .x(xScale)
         .y(yScale)
         .scaleExtent([0.25, 4])
         .on("zoom", function () { 
-            radiusFactor = zoomDensenessScale(zoomBehavior.scale());
+            radiusFactor = zoomDensityScale(zoomBehavior.scale());
             renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
 
             if (force) force.resume();
@@ -579,7 +576,7 @@ GraphVis = function (renderer, options) {
             .on("tick", function (e) {
                 _(nodeCircles).each(cluster(0.2 * e.alpha));
                 _(nodeCircles).each(collide(.5));
-                renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, null);
+                renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
             })
             .start();
     };
