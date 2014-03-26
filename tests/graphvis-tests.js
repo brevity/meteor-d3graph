@@ -50,9 +50,11 @@ Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var visNode = new VisNode("node1", null, null, null, null);
+    var visCluster = new VisCluster("cluster1", null, false);
+    var visNode = new VisNode("node1", null, null, null);
     var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text", false, {}); 
-    var clusterHull = new ClusterHull("cluster1", null, [visNode], [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
+    console.log("Vis cluster: ", visCluster);
+    var clusterHull = new ClusterHull("cluster1", null, visCluster, [visNode], [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
     
     // Execute
     svgRenderer.update([clusterHull], [], [nodeCircle], [], idScale, idScale, 1, 0);
@@ -91,8 +93,6 @@ Tinytest.addAsync(testLevel + "link test", function (test, next) {
     var links = containerElement.find("path.link");
     test.equal(links.length, 1, "There should be one link");
 
-    console.log(links[0]);
-
     setTimeout(function () {
         var link = $(links[0]);
         test.equal(link.attr("data-id"), "node1->node2", "Link should have the ID we gave it");
@@ -129,7 +129,7 @@ Tinytest.addAsync(testLevel + "node test", function (test, next) {
     }, 20);
 });
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "node event handler test", function (test, next) {
+//[of]:Tinytest.add(testLevel + "node event handler test", function (test, next) {
 Tinytest.add(testLevel + "node event handler test", function (test, next) {
     // Setup
     var containerElement = $("<div />");
@@ -137,8 +137,9 @@ Tinytest.add(testLevel + "node event handler test", function (test, next) {
     var idScale = d3.scale.linear();
     
     var success = false;
-    var eventHandlers = { "click" : function () { success = true; } };
-    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, eventHandlers);
+    var nodeCircle;
+    var eventHandlers = { "click" : function (d) { success = d === nodeCircle; } };
+    nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, eventHandlers);
     svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 1, 0);
     var node = $(containerElement.find("circle.node")[0]);
 
@@ -150,6 +151,40 @@ Tinytest.add(testLevel + "node event handler test", function (test, next) {
     
     // Verify
     test.isTrue(success, "The click handler should have set the success flag to true");
+});
+//[cf]
+//[of]:Tinytest.add(testLevel + "link, cluster and label event handlers test", function (test, next) {
+Tinytest.add(testLevel + "link, cluster and label event handlers test", function (test, next) {
+    // Setup
+    var containerElement = $("<div />");
+    var svgRenderer = new SvgRenderer(containerElement, {});
+    var idScale = d3.scale.linear();
+    
+    var clickCount = 0;
+    var eventHandlers = { "click" : function (d) { clickCount += 1; } };
+    
+    var nc1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, {});
+    var nc2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 1, "", false, {});
+    
+    var linkLine = new LinkLine("link1", null, nc1, nc2, 1, "#f00", 1, false, false, null, "", eventHandlers);
+    var clusterHull = new ClusterHull("cluster1", null, null, [], [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
+    var labelText = new LabelText("label1", null, "label text", 10, 10, 10, "#f00", "#800", 1, "", eventHandlers);
+    
+    svgRenderer.update([clusterHull], [linkLine], [nc1, nc2], [labelText], idScale, idScale, 1, 0);
+    var link = $(containerElement.find("path.link")[0]);
+    var cluster = $(containerElement.find("path.cluster")[0]);
+    var label = $(containerElement.find("g.label")[0]);
+
+    var evt = document.createEvent('MouseEvents');
+    evt.initEvent('click', true, false);
+    
+    // Execute
+    link[0].dispatchEvent(evt);
+    cluster[0].dispatchEvent(evt);
+    label[0].dispatchEvent(evt);
+    
+    // Verify
+    test.equal(clickCount, 3, "We should have registered three clicks");
 });
 //[cf]
 
@@ -328,6 +363,26 @@ Tinytest.add(testLevel + "Zoom test", function (test) {
     
     // Verify
     test.ok(); // Not really, but I can't get the event to trigger a proper zoom....
+});
+//[cf]
+//[of]:Tinytest.add(testLevel + "Collapse cluster test", function (test) {
+Tinytest.add(testLevel + "Collapse cluster test", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    var graphVis = new GraphVis(mockRenderer, {});
+    
+    var node1 = new VisNode("node1", null, "cluster1", null, null);
+    var node2 = new VisNode("node2", null, "cluster1", null, null);
+    var cluster1 = new VisCluster("cluster1", null, false);
+    graphVis.update([node1, node2], [], [cluster1]);
+
+    // Execute
+    mockRenderer.clusterHulls[0].eventHandlers.dblclick(mockRenderer.clusterHulls[0]);
+    
+    // Verify
+    test.equal(mockRenderer.clusterHulls.length, 0, "The one cluster should now be collapsed and there should be no hull representing it");
+    test.equal(mockRenderer.nodeCircles.length, 1, "There should only be one NodeCircle: the placeholder for the cluster");
+    
 });
 //[cf]
 

@@ -47,9 +47,10 @@ LabelText = function (id, data, text, x, y, fontSize, color, borderColor, opacit
     this.eventHandlers = eventHandlers;
 };
 
-ClusterHull = function (id, data, visNodes, nodeCircles, color, borderColor, opacity, hoverText, eventHandlers) {
+ClusterHull = function (id, data, visCluster, visNodes, nodeCircles, color, borderColor, opacity, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
+    this.visCluster = visCluster;
     this.visNodes = visNodes;
     this.nodeCircles = nodeCircles;
     this.color = color;
@@ -124,6 +125,11 @@ SvgRenderer = function (containerElement, options) {
     }
     //[cf]
     
+    function allEventNames(elementArray) {
+        // We want to know all the different types of events that exist in any of the elements. This cryptic oneliner does that:
+        return _.uniq(_.flatten(_.map(_.pluck(elementArray, "eventHandlers"), function (eh) { return _.keys(eh); })));
+    }
+    
     // transitionDuration should only be used by tests/debugging
     this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration) {
         transitionDuration = transitionDuration === undefined ? 250 : transitionDuration;
@@ -134,15 +140,23 @@ SvgRenderer = function (containerElement, options) {
         var cluster = layers.clusters.selectAll("path.cluster")
             .data(clusterHulls, function (d) { return d.id; });
         
-        var clusterEnter = cluster.enter()
-            .append("svg:path")
-                .attr("class", "cluster")
-                .attr("data-id", function (d) { return d.id; })
-                .style("fill", function (d) { return d.color; })
-                .style("stroke", function (d) { return d.borderColor; })
-                .style("opacity", 1e-6);
+        var clusterEnter = cluster.enter().append("svg:path")
+        clusterEnter
+            .attr("class", "cluster")
+            .attr("data-id", function (d) { return d.id; })
+            .style("fill", function (d) { return d.color; })
+            .style("stroke", function (d) { return d.borderColor; })
+            .style("opacity", 1e-6)
+            .append("svg:title");
         
-        clusterEnter.append("svg:title");
+        var allClusterEvents = allEventNames(clusterHulls);
+        
+        _.each(allClusterEvents, function (ce) {
+            clusterEnter.on(ce, function (d) { 
+                if (d.eventHandlers.hasOwnProperty(ce))
+                    d.eventHandlers[ce](d); 
+            });
+        });
         
         cluster.exit().transition().duration(transitionDuration)
             .style("opacity", 1e-6)
@@ -166,13 +180,21 @@ SvgRenderer = function (containerElement, options) {
         var link = layers.links.selectAll("path.link")
             .data(linkLines, function (d) { return d.id; });
         
-        link.enter()
-            .append("svg:path")
-                .attr("class", "link")
-                .attr("data-id", function (d) { return d.id; })
-                .style("stroke-opacity", 1e-6)
-                .style("stroke-width", 1e-6)
+        var linkEnter = link.enter().append("svg:path");
+        linkEnter.attr("class", "link")
+            .attr("data-id", function (d) { return d.id; })
+            .style("stroke-opacity", 1e-6)
+            .style("stroke-width", 1e-6)
             .append("svg:title");
+        
+        var allLinkEvents = allEventNames(linkLines);
+        
+        _.each(allLinkEvents, function (le) {
+            linkEnter.on(le, function (d) { 
+                if (d.eventHandlers.hasOwnProperty(le))
+                    d.eventHandlers[le](d); 
+            });
+        });
         
         link.exit().transition().duration(transitionDuration)
             .style("stroke-opacity", 1e-6)
@@ -194,23 +216,20 @@ SvgRenderer = function (containerElement, options) {
         //[of]:        Nodes
         //[c]Nodes
         
-        // We want to know all the different types of events that exist in any of the NodeCircle's. This cryptic oneliner does that:
-        var allNodeEvents = _.uniq(_.flatten(_.map(_.pluck(nodeCircles, "eventHandlers"), function (eh) { return _.keys(eh); })));
-        console.log("All node events: ", allNodeEvents);
-        
         var node = layers.nodes.selectAll("circle.node")
             .data(nodeCircles, function (d) { return d.id; });
         
         var nodeEnter = node.enter().append("svg:circle");
-        
         nodeEnter
-                .attr("class", "node")
-                .attr("data-id", function (d) { return d.id; })
-                .attr("cx", function (d) { return xScale(d.x); })
-                .attr("cy", function (d) { return yScale(d.y); })
-                .attr("r", 1e-6)
-                .style("opacity", 1e-6)
+            .attr("class", "node")
+            .attr("data-id", function (d) { return d.id; })
+            .attr("cx", function (d) { return xScale(d.x); })
+            .attr("cy", function (d) { return yScale(d.y); })
+            .attr("r", 1e-6)
+            .style("opacity", 1e-6)
             .append("svg:title");
+        
+        var allNodeEvents = allEventNames(nodeCircles);
         
         _.each(allNodeEvents, function (ne) {
             nodeEnter.on(ne, function (d) { 
@@ -235,6 +254,45 @@ SvgRenderer = function (containerElement, options) {
         
         node.select("title")
             .text(function (d) { return d.hoverText; });    
+        //[cf]
+        //[of]:        Labels
+        //[c]Labels
+        
+        var label = layers.labels.selectAll("g.label")
+            .data(labelTexts, function (d) { return d.id; });
+        
+        var labelEnter = label.enter().append("svg:g");
+        labelEnter
+            .attr("class", "label")
+            .attr("data-id", function (d) { return d.id; })
+            .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; })
+            .style("opacity", 1e-6)
+            .append("svg:text");
+        
+        var allLabelEvents = allEventNames(labelTexts);
+        
+        _.each(allLabelEvents, function (le) {
+            labelEnter.on(le, function (d) { 
+                if (d.eventHandlers.hasOwnProperty(le))
+                    d.eventHandlers[le](d); 
+            });
+        });
+        
+        label.exit().transition().duration(transitionDuration)
+            .style("opacity", 1e-6)
+            .remove();
+        
+        label.transition().duration(transitionDuration)
+            .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; })
+        
+        label.select("text")
+            .text(function (d) { return d.text; })
+            .transition().duration(transitionDuration)
+            .style("stroke-width", function (d) { return 2 * radiusFactor; })
+            .style("opacity", function (d) { return d.opacity; })
+            .style("fill", function (d) { return d.color; })
+            .style("stroke", function (d) { return d.borderColor; });
+        
         //[cf]
     };
 
@@ -342,7 +400,9 @@ GraphVis = function (renderer, options) {
     
     //[of]:    function initialize() {
     function initialize() {
-        d3.select(renderer.containerElement()[0]).call(zoomBehavior);
+        d3.select(renderer.containerElement()[0])
+            .call(zoomBehavior)
+            .on("dblclick.zoom", null);
     }
     //[cf]
 
@@ -353,7 +413,25 @@ GraphVis = function (renderer, options) {
         var opacity = 0.2;
         var hoverText = "";
     
-        return new ClusterHull(visCluster.id, visCluster, [], [], color, borderColor, opacity, hoverText, {});
+        var eventHandlers = {
+            "dblclick": function (d) { 
+                console.log("Collapsing cluster " + d.id + "..");
+                
+                // Remove the cluster hull
+                clusterHulls = _.without(clusterHulls, d);
+    
+                // Remove nodes in the cluster
+                nodeCircles = _.filter(nodeCircles, function (nc) { return nc.data.clusterId !== d.id; });
+    
+                // And insert a placeholder instead.
+                var placeholderNode = nodeCircleFromCollapsedCluster(d.visCluster, d.visNodes);
+                nodeCircles.push(placeholderNode);
+                
+                renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+            }
+        };
+    
+        return new ClusterHull(visCluster.id, visCluster.data, visCluster, [], [], color, borderColor, opacity, hoverText, eventHandlers);
     }
     
     //[cf]
@@ -402,8 +480,7 @@ GraphVis = function (renderer, options) {
         };
         
         var eventHandlers = {
-            "click": function () { console.log("Placeholder was clicked"); },
-            "mouseover": function (d) { console.log("placeholder was hovered"); }
+            "click": function () { console.log("Placeholder was clicked"); }
         };
         
         return new NodeCircle("placeholder-" + visCluster.id, data, x, y, radius, color, borderColor, opacity, hoverText, false, eventHandlers);
