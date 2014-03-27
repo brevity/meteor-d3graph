@@ -43,8 +43,8 @@ Tinytest.add(testLevel + "Constructor test", function (test) {
 });
 
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
-Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
+//[of]:Tinytest.addAsync(testLevel + "Cluster hull test", function (test, next) {
+Tinytest.addAsync(testLevel + "Cluster hull test", function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -53,7 +53,6 @@ Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
     var visCluster = new VisCluster("cluster1", null, false);
     var visNode = new VisNode("node1", null, null, null);
     var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text", false, {}); 
-    console.log("Vis cluster: ", visCluster);
     var clusterHull = new ClusterHull("cluster1", null, visCluster, [visNode], [], [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
     
     // Execute
@@ -74,8 +73,8 @@ Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
 });
 
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "link test", function (test, next) {
-Tinytest.addAsync(testLevel + "link test", function (test, next) {
+//[of]:Tinytest.addAsync(testLevel + "Link test", function (test, next) {
+Tinytest.addAsync(testLevel + "Link test", function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -104,8 +103,8 @@ Tinytest.addAsync(testLevel + "link test", function (test, next) {
 
 
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "node test", function (test, next) {
-Tinytest.addAsync(testLevel + "node test", function (test, next) {
+//[of]:Tinytest.addAsync(testLevel + "Node test", function (test, next) {
+Tinytest.addAsync(testLevel + "Node test", function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -129,8 +128,8 @@ Tinytest.addAsync(testLevel + "node test", function (test, next) {
     }, 20);
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "node event handler test", function (test, next) {
-Tinytest.add(testLevel + "node event handler test", function (test, next) {
+//[of]:Tinytest.add(testLevel + "Node event handler test", function (test, next) {
+Tinytest.add(testLevel + "Node event handler test", function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -153,8 +152,8 @@ Tinytest.add(testLevel + "node event handler test", function (test, next) {
     test.isTrue(success, "The click handler should have set the success flag to true");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "link, cluster and label event handlers test", function (test, next) {
-Tinytest.add(testLevel + "link, cluster and label event handlers test", function (test, next) {
+//[of]:Tinytest.add(testLevel + "Link, cluster and label event handlers test", function (test, next) {
+Tinytest.add(testLevel + "Link, cluster and label event handlers test", function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -308,7 +307,6 @@ Tinytest.add(testLevel + "Expanded cluster test", function (test) {
     test.equal(ch.nodeCircles.length, 2, "The hull should contain the two nodeCircles");
     test.instanceOf(ch.nodeCircles[0], NodeCircle, "cluster nodecircles should actually be nodecircles");
     test.equal(ch.nodeCircles[0].id, "node1", "The first nodeCircle should refer to node1");
-    console.log(ch);
 });
 //[cf]
 //[of]:Tinytest.add(testLevel + "Link test", function (test) {
@@ -410,10 +408,31 @@ Tinytest.add(testLevel + "Collapse cluster test with links", function (test) {
     testArrayProperty(test, mockRenderer.nodeCircles, "id", ["node3", "placeholder-cluster1"]);
     testArrayProperty(test, mockRenderer.linkLines, "id", ["placeholder-cluster1->node3"]);    
 });
+
+//[cf]
+//[of]:Tinytest.add(testLevel + "Expand cluster simple test", function (test) {
+Tinytest.add(testLevel + "Expand cluster simple test", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    var graphVis = new GraphVis(mockRenderer, {});
+    
+    var node1 = new VisNode("node1", null, "cluster1", null, null);
+    var node2 = new VisNode("node2", null, "cluster1", null, null);
+    var cluster1 = new VisCluster("cluster1", null, true);
+    graphVis.update([node1, node2], [], [cluster1]);
+
+    // Execute
+    mockRenderer.nodeCircles[0].eventHandlers.dblclick(mockRenderer.nodeCircles[0]);
+    
+    // Verify
+    test.equal(mockRenderer.clusterHulls.length, 1, "The one cluster should now be expanded and have a hull representing it");
+    testArrayProperty(test, mockRenderer.nodeCircles, "id", ["node1", "node2"]);
+    
+});
 //[cf]
 
 
-
+//[c]
 //[c]Tests to add:
 //[c] - Add node to collapsed cluster
 //[c]

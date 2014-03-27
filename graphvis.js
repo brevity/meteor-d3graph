@@ -416,16 +416,20 @@ GraphVis = function (renderer, options) {
     
         var eventHandlers = {
             "dblclick": function (d) { 
-                console.log("Collapsing cluster " + d.id + "..");
-                
                 // Remove the cluster hull
                 clusterHulls = _.without(clusterHulls, d);
     
                 // Remove nodes in the cluster
+                var removedNodeCircles = _.filter(nodeCircles, function (nc) { return nc.data.clusterId === d.id; });
                 nodeCircles = _.filter(nodeCircles, function (nc) { return nc.data.clusterId !== d.id; });
     
                 // And insert a placeholder instead.
+                var xSum = _.reduce(removedNodeCircles, function (sum, nc) { return sum + nc.x; }, 0);
+                var ySum = _.reduce(removedNodeCircles, function (sum, nc) { return sum + nc.y; }, 0);
+                
                 var placeholderNode = nodeCircleFromCollapsedCluster(d.visCluster, d.visNodes);
+                placeholderNode.x = xSum / removedNodeCircles.length;
+                placeholderNode.y = ySum / removedNodeCircles.length;
                 nodeCircles.push(placeholderNode);
                 
                 // Remove links to and from cluster
@@ -437,7 +441,6 @@ GraphVis = function (renderer, options) {
                 var outboundLinks = {};
                 
                 _.each(removedLinks, function (linkLine) {
-                    console.log("Testing link line: ", linkLine);
                     if (linkLine.source.data.clusterId === linkLine.target.data.clusterId)    // Link within cluster. Skip it.
                         return;
                     
@@ -455,10 +458,6 @@ GraphVis = function (renderer, options) {
                         inboundLinks[linkLine.source.id].push(linkLine);                    
                     }
                 });
-                
-                console.log("inboundLinks: ", inboundLinks);
-                console.log("outboundLinks: ", outboundLinks);
-                
                 
                 _.each(inboundLinks, function (linkLineCollection) {
                     var placeholderLink = linkLineForCluster(linkLineCollection, placeholderNode, true);
@@ -524,7 +523,17 @@ GraphVis = function (renderer, options) {
         };
         
         var eventHandlers = {
-            "click": function () { console.log("Placeholder was clicked"); }
+            "dblclick": function (d) {  
+                // Remove the placeholder node
+                nodeCircles = _.filter(nodeCircles, function (nc) { return nc.id !== d.id });
+    
+                console.log("d: ", d);
+    
+                // Remove links to and from placeholder node
+                linkLines = _.filter(linkLines, function (ll) { return ll.source !== d && ll.target !== d; });
+    
+                renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+            }
         };
         
         return new NodeCircle("placeholder-" + visCluster.id, data, x, y, radius, color, borderColor, opacity, hoverText, false, eventHandlers);

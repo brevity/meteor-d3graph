@@ -47,14 +47,14 @@ svg {
         var i;
 
         var clusters = [];
-        for (i = 0; i < 10; i++) {
-            var collapsed = i < 5;
+        for (i = 0; i < 3; i++) {
+            var collapsed = false; // i < 5;
             var c = new VisCluster("cluster" + (i + 1), null, collapsed);
             clusters.push(c);
         }
 
         var nodes = [];
-        for (i = 0; i < 150; i++) {
+        for (i = 0; i < 10; i++) {
             var clusterId = null;
             if (Math.random() * 10 > 2)
                 clusterId = "cluster" + (Math.floor(Math.random() * clusters.length) + 1);
@@ -63,7 +63,7 @@ svg {
         }
         
         var links = [];
-        for (i = 0; i < 100; i++) {
+        for (i = 0; i < 6; i++) {
             var n1 = nodes[Math.floor(Math.random() * nodes.length)];
             var n2 = nodes[Math.floor(Math.random() * nodes.length)];
             
