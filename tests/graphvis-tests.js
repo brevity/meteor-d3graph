@@ -54,7 +54,7 @@ Tinytest.addAsync(testLevel + "cluster hull test", function (test, next) {
     var visNode = new VisNode("node1", null, null, null);
     var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text", false, {}); 
     console.log("Vis cluster: ", visCluster);
-    var clusterHull = new ClusterHull("cluster1", null, visCluster, [visNode], [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
+    var clusterHull = new ClusterHull("cluster1", null, visCluster, [visNode], [], [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
     
     // Execute
     svgRenderer.update([clusterHull], [], [nodeCircle], [], idScale, idScale, 1, 0);
@@ -167,7 +167,7 @@ Tinytest.add(testLevel + "link, cluster and label event handlers test", function
     var nc2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 1, "", false, {});
     
     var linkLine = new LinkLine("link1", null, nc1, nc2, 1, "#f00", 1, false, false, null, "", eventHandlers);
-    var clusterHull = new ClusterHull("cluster1", null, null, [], [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
+    var clusterHull = new ClusterHull("cluster1", null, null, [], [], [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
     var labelText = new LabelText("label1", null, "label text", 10, 10, 10, "#f00", "#800", 1, "", eventHandlers);
     
     svgRenderer.update([clusterHull], [linkLine], [nc1, nc2], [labelText], idScale, idScale, 1, 0);
@@ -319,7 +319,7 @@ Tinytest.add(testLevel + "Link test", function (test) {
     
     var node1 = new VisNode("node1", null, null, null, null);
     var node2 = new VisNode("node2", null, null, null, null);
-    var link = new VisLink(null, null, "node1", "node2");
+    var link = new VisLink(null, "node1", "node2");
     
     // Execute
     graphVis.update([node1, node2], [link], []);
@@ -365,8 +365,8 @@ Tinytest.add(testLevel + "Zoom test", function (test) {
     test.ok(); // Not really, but I can't get the event to trigger a proper zoom....
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Collapse cluster test", function (test) {
-Tinytest.add(testLevel + "Collapse cluster test", function (test) {
+//[of]:Tinytest.add(testLevel + "Collapse cluster simple test", function (test) {
+Tinytest.add(testLevel + "Collapse cluster simple test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -385,6 +385,39 @@ Tinytest.add(testLevel + "Collapse cluster test", function (test) {
     
 });
 //[cf]
+//[of]:Tinytest.add(testLevel + "Collapse cluster test with links", function (test) {
+Tinytest.add(testLevel + "Collapse cluster test with links", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    var graphVis = new GraphVis(mockRenderer, {});
+    
+    var node1 = new VisNode("node1", null, "cluster1", null, null);
+    var node2 = new VisNode("node2", null, "cluster1", null, null);
+    var node3 = new VisNode("node3", null, "cluster2", null, null);
+    var cluster1 = new VisCluster("cluster1", null, false);
+    var cluster2 = new VisCluster("cluster2", null, false);
+    var link1 = new VisLink(null, "node1", "node2");
+    var link2 = new VisLink(null, "node1", "node3");
+    var link3 = new VisLink(null, "node2", "node3");
+    
+    graphVis.update([node1, node2, node3], [link1, link2, link3], [cluster1, cluster2]);
+
+    // Execute
+    mockRenderer.clusterHulls[0].eventHandlers.dblclick(mockRenderer.clusterHulls[0]);  // Double-click cluster1 to collapse it
+    
+    // Verify
+    test.equal(mockRenderer.clusterHulls.length, 1, "There should be one cluster hull left");
+    testArrayProperty(test, mockRenderer.nodeCircles, "id", ["node3", "placeholder-cluster1"]);
+    testArrayProperty(test, mockRenderer.linkLines, "id", ["placeholder-cluster1->node3"]);    
+});
+//[cf]
+
+
+
+//[c]Tests to add:
+//[c] - Add node to collapsed cluster
+//[c]
+
 
 
 

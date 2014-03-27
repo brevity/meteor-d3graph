@@ -67,7 +67,7 @@ svg {
             var n1 = nodes[Math.floor(Math.random() * nodes.length)];
             var n2 = nodes[Math.floor(Math.random() * nodes.length)];
             
-            var l = new VisLink(n1.id + "->" + n2.id, null, n1.id, n2.id);
+            var l = new VisLink(null, n1.id, n2.id);
             links.push(l);
         }
 

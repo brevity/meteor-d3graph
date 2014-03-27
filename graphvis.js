@@ -47,11 +47,13 @@ LabelText = function (id, data, text, x, y, fontSize, color, borderColor, opacit
     this.eventHandlers = eventHandlers;
 };
 
-ClusterHull = function (id, data, visCluster, visNodes, nodeCircles, color, borderColor, opacity, hoverText, eventHandlers) {
+// This guy needs to know about visNodes and visLinks so we can reconstruct NodeCircle's and LinkLine's when it's expanded
+ClusterHull = function (id, data, visCluster, visNodes, visLinks, nodeCircles, color, borderColor, opacity, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
     this.visCluster = visCluster;
     this.visNodes = visNodes;
+    this.visLinks = visLinks;
     this.nodeCircles = nodeCircles;
     this.color = color;
     this.borderColor = borderColor;
@@ -88,7 +90,7 @@ SvgRenderer = function (containerElement, options) {
     
         var clusterCurve = d3.svg.line()
             .interpolate("cardinal-closed")
-            .tension(.85);
+            .tension(0.85);
     
         return clusterCurve(d3.geom.hull(nodePoints));
     }
@@ -140,7 +142,7 @@ SvgRenderer = function (containerElement, options) {
         var cluster = layers.clusters.selectAll("path.cluster")
             .data(clusterHulls, function (d) { return d.id; });
         
-        var clusterEnter = cluster.enter().append("svg:path")
+        var clusterEnter = cluster.enter().append("svg:path");
         clusterEnter
             .attr("class", "cluster")
             .attr("data-id", function (d) { return d.id; })
@@ -207,7 +209,7 @@ SvgRenderer = function (containerElement, options) {
             .style("stroke", function (d) { return d.color; });
         
         link
-            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale) });
+            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale); });
             
         link.select("title")
             .text(function (d) { return d.hoverText; });    
@@ -283,7 +285,7 @@ SvgRenderer = function (containerElement, options) {
             .remove();
         
         label.transition().duration(transitionDuration)
-            .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; })
+            .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; });
         
         label.select("text")
             .text(function (d) { return d.text; })
@@ -304,7 +306,7 @@ SvgRenderer = function (containerElement, options) {
             .data(clusterHulls, function (d) { return d.id; });
         
         cluster
-            .attr("d", function (d) { return makeHull(d, xScale, yScale, radiusFactor); })
+            .attr("d", function (d) { return makeHull(d, xScale, yScale, radiusFactor); });
         
         //[cf]
         //[of]:        Links
@@ -314,7 +316,7 @@ SvgRenderer = function (containerElement, options) {
             .data(linkLines, function (d) { return d.id; });
         
         link
-            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale) })
+            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale); })
             .style("stroke-width", function (d) { return d.thickness * radiusFactor; });
         
         //[cf]
@@ -350,8 +352,7 @@ VisNode = function (id, data, clusterId, fixedX, fixedY) {
     this.fixedY = fixedY;
 };
 
-VisLink = function (id, data, sourceNodeId, targetNodeId) {
-    this.id = id || (sourceNodeId + "->" + targetNodeId);
+VisLink = function (data, sourceNodeId, targetNodeId) {
     this.data = data;
     this.sourceNodeId = sourceNodeId;
     this.targetNodeId = targetNodeId;
@@ -427,11 +428,53 @@ GraphVis = function (renderer, options) {
                 var placeholderNode = nodeCircleFromCollapsedCluster(d.visCluster, d.visNodes);
                 nodeCircles.push(placeholderNode);
                 
+                // Remove links to and from cluster
+                var removedLinks = _.filter(linkLines, function (ll) { return ll.source.data.clusterId === d.id || ll.target.data.clusterId === d.id; });
+                linkLines = _.filter(linkLines, function (ll) { return ll.source.data.clusterId !== d.id && ll.target.data.clusterId !== d.id; });
+    
+                // Reestablish links to and from this cluster
+                var inboundLinks = {};  // maps using node-id as key
+                var outboundLinks = {};
+                
+                _.each(removedLinks, function (linkLine) {
+                    console.log("Testing link line: ", linkLine);
+                    if (linkLine.source.data.clusterId === linkLine.target.data.clusterId)    // Link within cluster. Skip it.
+                        return;
+                    
+                    if (linkLine.source.data.clusterId === d.id) {
+                        // This link points out from this cluster
+                        if (!outboundLinks.hasOwnProperty(linkLine.target.id))
+                            outboundLinks[linkLine.target.id] = [];
+    
+                        outboundLinks[linkLine.target.id].push(linkLine);                    
+                    } else {
+                        // This link points into this cluster
+                        if (!inboundLinks.hasOwnProperty(linkLine.source.id))
+                            inboundLinks[linkLine.source.id] = [];
+    
+                        inboundLinks[linkLine.source.id].push(linkLine);                    
+                    }
+                });
+                
+                console.log("inboundLinks: ", inboundLinks);
+                console.log("outboundLinks: ", outboundLinks);
+                
+                
+                _.each(inboundLinks, function (linkLineCollection) {
+                    var placeholderLink = linkLineForCluster(linkLineCollection, placeholderNode, true);
+                    linkLines.push(placeholderLink);
+                });
+    
+                _.each(outboundLinks, function (linkLineCollection) {
+                    var placeholderLink = linkLineForCluster(linkLineCollection, placeholderNode, false);
+                    linkLines.push(placeholderLink);
+                });
+    
                 renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
             }
         };
     
-        return new ClusterHull(visCluster.id, visCluster.data, visCluster, [], [], color, borderColor, opacity, hoverText, eventHandlers);
+        return new ClusterHull(visCluster.id, visCluster, visCluster, [], [], [], color, borderColor, opacity, hoverText, eventHandlers);
     }
     
     //[cf]
@@ -462,7 +505,7 @@ GraphVis = function (renderer, options) {
     }
     //[cf]
     //[of]:    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes) {
-    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes) {
+    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes, clusterVisLinks) {
         var radius = 20;
         var color = colors(visCluster.id);
         var borderColor = d3.rgb(color).darker(1);
@@ -476,7 +519,8 @@ GraphVis = function (renderer, options) {
         
         var data = {
             visCluster: visCluster,
-            visNodes: clusterVisNodes
+            visNodes: clusterVisNodes,
+            visLinks: clusterVisLinks
         };
         
         var eventHandlers = {
@@ -512,6 +556,37 @@ GraphVis = function (renderer, options) {
         return linkLine;
     }
     //[cf]
+    //[of]:    function linkLineForCluster(linkLineCollection, placeholderNode, isInbound) {
+    function linkLineForCluster(linkLineCollection, placeholderNode, isInbound) {
+        var thickness = 2;
+        var color = "#0f0";
+        var opacity = 1;
+        var markerStart = false;
+        var markerEnd = false;
+        var dashPattern = null;
+        var hoverText = "";
+    
+        var realNode = isInbound ? linkLineCollection[0].source : linkLineCollection[0].target;
+    
+        var sourceNodeCircle = isInbound ? realNode : placeholderNode;
+        var targetNodeCircle = isInbound ? placeholderNode : realNode;
+    
+        var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
+            linkLineCollection, 
+            sourceNodeCircle, 
+            targetNodeCircle, 
+            thickness, 
+            color, 
+            opacity, 
+            markerStart, 
+            markerEnd, 
+            dashPattern, 
+            hoverText,
+            {});
+    
+        return linkLine;
+    }
+    //[cf]
 
     //[of]:    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
     this.update = function (visNodes, visLinks, visClusters) {
@@ -519,12 +594,12 @@ GraphVis = function (renderer, options) {
         //[c]Create cluster hulls
         
         var newClusterHulls = [];   // We'll only create hulls for expanded clusters
-        var collapsedClusters = {}  // Collapsed ones go in here to turn into placeholder NodeCircles
+        var collapsedClusters = {};  // Collapsed ones go in here to turn into placeholder NodeCircles
         _.each(visClusters, function (vc) {
             if (!vc.isCollapsed)
                 newClusterHulls.push(clusterHullFromVisCluster(vc));
             else
-                collapsedClusters[vc.id] = [];
+                collapsedClusters[vc.id] = { visNodes: [], visLinks: [] };
         });
         //[cf]
         //[of]:    Create node circles
@@ -544,16 +619,16 @@ GraphVis = function (renderer, options) {
                     if (!collapsedClusters.hasOwnProperty(visNode.clusterId))
                         throw "Node '" + visNode.id + "' refers to a cluster '" + visNode.clusterId + "' that wasn't defined";
                     
-                    collapsedClusters[visNode.clusterId].push(visNode);
+                    collapsedClusters[visNode.clusterId].visNodes.push(visNode);
                 }
             } else {
                 newNodeCircles.push(nodeCircleFromVisNode(visNode));
             }
         });
         
-        _.each(collapsedClusters, function (clusterVisNodes, clusterId) {
+        _.each(collapsedClusters, function (collapsedCluster, clusterId) {
             var visCluster = _.find(visClusters, function (vc) { return vc.id === clusterId; });
-            newNodeCircles.push(nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes));
+            newNodeCircles.push(nodeCircleFromCollapsedCluster(visCluster, collapsedCluster.visNodes, collapsedCluster.visLinks));
         });
         //[cf]
         //[of]:    Create link lines
@@ -562,12 +637,12 @@ GraphVis = function (renderer, options) {
         var newLinkLines = [];
         _.each(visLinks, function (visLink) {
             var sourceVisNode = _.find(visNodes, function (vn) { return vn.id === visLink.sourceNodeId; });
-            var targetVisNode = _.find(visNodes, function (vn) { return vn.id === visLink.targetNodeId; });
-            
             if (!sourceVisNode)
-                throw "Link " + visLink.id + " refers to a source node '" + visLink.sourceNodeId + "' that wasn't found";
+                throw "Link refers to a source node '" + visLink.sourceNodeId + "' that wasn't found";
+        
+            var targetVisNode = _.find(visNodes, function (vn) { return vn.id === visLink.targetNodeId; });
             if (!targetVisNode)
-                throw "Link " + visLink.id + " refers to a target node '" + visLink.targetNodeId + "' that wasn't found";
+                throw "Link refers to a target node '" + visLink.targetNodeId + "' that wasn't found";
         
             var sourceVisCluster, targetVisCluster;
             if (sourceVisNode.clusterId)
@@ -675,7 +750,7 @@ GraphVis = function (renderer, options) {
             .size([renderer.width(), renderer.height()])
             .on("tick", function (e) {
                 _(nodeCircles).each(cluster(0.6 * e.alpha));
-                _(nodeCircles).each(collide(.5));
+                _(nodeCircles).each(collide(0.5));
                 renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
             })
             .linkDistance(function(l, i) {
