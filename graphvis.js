@@ -155,8 +155,10 @@ SvgRenderer = function (containerElement, options) {
         
         _.each(allClusterEvents, function (ce) {
             clusterEnter.on(ce, function (d) { 
-                if (d.eventHandlers.hasOwnProperty(ce))
+                if (d.eventHandlers.hasOwnProperty(ce)) {
                     d.eventHandlers[ce](d); 
+                    d3.event.stopPropagation();
+                }
             });
         });
         
@@ -193,8 +195,10 @@ SvgRenderer = function (containerElement, options) {
         
         _.each(allLinkEvents, function (le) {
             linkEnter.on(le, function (d) { 
-                if (d.eventHandlers.hasOwnProperty(le))
+                if (d.eventHandlers.hasOwnProperty(le)) {
                     d.eventHandlers[le](d); 
+                    d3.event.stopPropagation();
+                }
             });
         });
         
@@ -235,8 +239,10 @@ SvgRenderer = function (containerElement, options) {
         
         _.each(allNodeEvents, function (ne) {
             nodeEnter.on(ne, function (d) { 
-                if (d.eventHandlers.hasOwnProperty(ne))
-                    d.eventHandlers[ne](d); 
+                if (d.eventHandlers.hasOwnProperty(ne)) {
+                    d.eventHandlers[ne](d);
+                    d3.event.stopPropagation();
+                }
             });
         });
         
@@ -275,8 +281,10 @@ SvgRenderer = function (containerElement, options) {
         
         _.each(allLabelEvents, function (le) {
             labelEnter.on(le, function (d) { 
-                if (d.eventHandlers.hasOwnProperty(le))
+                if (d.eventHandlers.hasOwnProperty(le)) {
                     d.eventHandlers[le](d); 
+                    d3.event.stopPropagation();
+                }
             });
         });
         
@@ -368,6 +376,8 @@ VisCluster = function (id, data, isCollapsed) {
 //[cf]
 
 GraphVis = function (renderer, options) {
+    var self = this;
+
     var xScale = d3.scale.linear()
         .domain([0, renderer.width()])
         .range([0, renderer.width()]);
@@ -389,7 +399,8 @@ GraphVis = function (renderer, options) {
 
             if (force) force.resume();
         });
-    
+
+    var visNodes, visLinks, visClusters;
     var clusterHulls = [];
     var linkLines = [];
     var nodeCircles = [];
@@ -397,26 +408,34 @@ GraphVis = function (renderer, options) {
     
     var force;
 
-    var colors = d3.scale.category10();
-    
     //[of]:    function initialize() {
     function initialize() {
-        d3.select(renderer.containerElement()[0])
+        var container = d3.select(renderer.containerElement()[0]);
+        
+        container
             .call(zoomBehavior)
             .on("dblclick.zoom", null);
+    
+        if (options.onClick) {
+            container.on("click", options.onClick);
+        }
     }
     //[cf]
 
     //[of]:    function clusterHullFromVisCluster(visCluster) {
     function clusterHullFromVisCluster(visCluster) {
-        var color = colors(visCluster.id);
+        var color = "#f88";
         var borderColor = d3.rgb(color).darker(1);
         var opacity = 0.2;
         var hoverText = "";
     
         var eventHandlers = {
             "dblclick": function (d) { 
-                // Remove the cluster hull
+                visCluster.isCollapsed = true;
+                self.update();
+                return;
+                
+    /*            // Remove the cluster hull
                 clusterHulls = _.without(clusterHulls, d);
     
                 // Remove nodes in the cluster
@@ -469,7 +488,7 @@ GraphVis = function (renderer, options) {
                     linkLines.push(placeholderLink);
                 });
     
-                renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+                renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor); */
             }
         };
     
@@ -493,21 +512,32 @@ GraphVis = function (renderer, options) {
             y = oldNodeCircle ? oldNodeCircle.y : (h / 2 + (Math.random() * (h / 2) - h / 4));
             fixed = false;
         }
-        
+    
         var radius = 10;
-        var color = colors(visNode.clusterId);
-        var borderColor = d3.rgb(color).darker(1);
+        var color = "#888";
+        var borderColor = "#333";
         var opacity = 1;
         var hoverText = "";
+    
+        if (options.describeVisNode) {
+            var description = options.describeVisNode(visNode);
+            
+            if (description.color) color = description.color;
+            if (description.borderColor) borderColor = description.borderColor;
+        }
         
-        return new NodeCircle(visNode.id, visNode, x, y, radius, color, borderColor, opacity, hoverText, fixed, {});
+        eventHandlers = {};
+        
+        if (options.onNodeClick) { eventHandlers.click = options.onNodeClick; }
+            
+        return new NodeCircle(visNode.id, visNode, x, y, radius, color, borderColor, opacity, hoverText, fixed, eventHandlers);
     }
     //[cf]
     //[of]:    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes) {
     function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes, clusterVisLinks) {
         var radius = 20;
-        var color = colors(visCluster.id);
-        var borderColor = d3.rgb(color).darker(1);
+        var color = "#333";
+        var borderColor = "#000";
         var opacity = 1;
         var hoverText = "";
     
@@ -524,7 +554,11 @@ GraphVis = function (renderer, options) {
         
         var eventHandlers = {
             "dblclick": function (d) {  
-                // Remove the placeholder node
+                visCluster.isCollapsed = false;
+                self.update();
+                return;
+    
+    /*            // Remove the placeholder node
                 nodeCircles = _.filter(nodeCircles, function (nc) { return nc.id !== d.id });
     
                 console.log("d: ", d);
@@ -532,7 +566,7 @@ GraphVis = function (renderer, options) {
                 // Remove links to and from placeholder node
                 linkLines = _.filter(linkLines, function (ll) { return ll.source !== d && ll.target !== d; });
     
-                renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+                renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor); */
             }
         };
         
@@ -598,7 +632,11 @@ GraphVis = function (renderer, options) {
     //[cf]
 
     //[of]:    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
-    this.update = function (visNodes, visLinks, visClusters) {
+    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
+        if (newVisNodes) visNodes = newVisNodes;
+        if (newVisLinks) visLinks = newVisLinks;
+        if (newVisClusters) visClusters = newVisClusters;
+    
         //[of]:    Create cluster hulls
         //[c]Create cluster hulls
         
@@ -611,8 +649,8 @@ GraphVis = function (renderer, options) {
                 collapsedClusters[vc.id] = { visNodes: [], visLinks: [] };
         });
         //[cf]
-        //[of]:    Create node circles
-        //[c]Create node circles
+        //[of]:    Create node circles and label texts
+        //[c]Create node circles and label texts
         
         var newNodeCircles = [];
         _.each(visNodes, function (visNode) {
