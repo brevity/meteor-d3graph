@@ -520,10 +520,13 @@ GraphVis = function (renderer, options) {
         var hoverText = "";
     
         if (options.describeVisNode) {
-            var description = options.describeVisNode(visNode);
+            var description = options.describeVisNode(visNode, radiusFactor);
             
+            if (description.radius) radius = description.radius;
             if (description.color) color = description.color;
             if (description.borderColor) borderColor = description.borderColor;
+            if (description.opacity) opacity = description.opactiry;
+            if (description.hoverText) hoverText = description.hoverText;
         }
         
         eventHandlers = {};
@@ -601,8 +604,8 @@ GraphVis = function (renderer, options) {
         return linkLine;
     }
     //[cf]
-    //[of]:    function linkLineForCluster(linkLineCollection, placeholderNode, isInbound) {
-    function linkLineForCluster(linkLineCollection, placeholderNode, isInbound) {
+    //[of]:    function linkLineFromClusterLinks(nodePairs) {
+    function  linkLineFromClusterLink(sourceNodeCircle, targetNodeCircle, visLinks) {
         var thickness = 2;
         var color = "#0f0";
         var opacity = 1;
@@ -611,15 +614,10 @@ GraphVis = function (renderer, options) {
         var dashPattern = null;
         var hoverText = "";
     
-        var realNode = isInbound ? linkLineCollection[0].source : linkLineCollection[0].target;
-    
-        var sourceNodeCircle = isInbound ? realNode : placeholderNode;
-        var targetNodeCircle = isInbound ? placeholderNode : realNode;
-    
         var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
-            linkLineCollection, 
-            sourceNodeCircle, 
-            targetNodeCircle, 
+            visLinks, 
+            sourceNodeCircle,
+            targetNodeCircle,
             thickness, 
             color, 
             opacity, 
@@ -630,6 +628,7 @@ GraphVis = function (renderer, options) {
             {});
     
         return linkLine;
+        
     }
     //[cf]
 
@@ -683,6 +682,8 @@ GraphVis = function (renderer, options) {
         //[of]:    Create link lines
         //[c]Create link lines
         
+        var clusterLinks = {};
+        
         var newLinkLines = [];
         _.each(visLinks, function (visLink) {
             var sourceVisNode = _.find(visNodes, function (vn) { return vn.id === visLink.sourceNodeId; });
@@ -699,25 +700,39 @@ GraphVis = function (renderer, options) {
         
             if (targetVisNode.clusterId)
                 targetVisCluster = _.find(visClusters, function (vc) { return vc.id === targetVisNode.clusterId; });
-            
+        
+            var isClusterLink = false;
             var sourceNodeCircle, targetNodeCircle;
+        
             if (sourceVisCluster && sourceVisCluster.isCollapsed) {
-                if (targetVisCluster === sourceVisCluster)  // Link within same cluster, ignore it.
-                    return; 
-                
+                isClusterLink = true;
                 sourceNodeCircle = _.find(newNodeCircles, function (nc) { return nc.id === "placeholder-" + sourceVisCluster.id; });
-            } else {
+            }
+            else {
                 sourceNodeCircle = _.find(newNodeCircles, function (nc) { return nc.id === sourceVisNode.id; });
             }
             
             if (targetVisCluster && targetVisCluster.isCollapsed) {
+                isClusterLink = true;
                 targetNodeCircle = _.find(newNodeCircles, function (nc) { return nc.id === "placeholder-" + targetVisCluster.id; });
             } else {
                 targetNodeCircle = _.find(newNodeCircles, function (nc) { return nc.id === targetVisNode.id; });
             }
             
-            var linkLine = linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle);
-                        
+            if (isClusterLink) {
+                var id = sourceNodeCircle.id + "->" + targetNodeCircle.id;
+                if (!clusterLinks.hasOwnProperty(id))
+                    clusterLinks[id] = { source: sourceNodeCircle, target: targetNodeCircle, visLinks: [] };
+                
+                clusterLinks[id].visLinks.push(visLink);
+            } else {
+                var linkLine = linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle);
+                newLinkLines.push(linkLine);
+            }
+        });
+        
+        _.each(clusterLinks, function (clusterLink) {
+            var linkLine = linkLineFromClusterLink(clusterLink.source, clusterLink.target, clusterLink.visLinks);
             newLinkLines.push(linkLine);
         });
         
@@ -798,7 +813,7 @@ GraphVis = function (renderer, options) {
             .links(linkLines)
             .size([renderer.width(), renderer.height()])
             .on("tick", function (e) {
-                _(nodeCircles).each(cluster(0.6 * e.alpha));
+                _(nodeCircles).each(cluster(0.01));
                 _(nodeCircles).each(collide(0.5));
                 renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
             })
@@ -831,6 +846,11 @@ GraphVis = function (renderer, options) {
             .friction(0.5)   // friction adjusted to get dampened display: less bouncy bouncy ball [Swedish Chef, anyone?]
             .start();
     };
+    //[cf]
+    //[of]:    this.resumeForce = function () {
+    this.resumeForce = function () {
+        force.resume();
+    }
     //[cf]
 
     initialize();

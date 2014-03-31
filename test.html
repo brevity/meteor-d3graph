@@ -42,14 +42,15 @@ svg {
         var palette = d3.scale.category10();
 
         var selection = [];
-        function selectNode(nodeCircle) { selection.push(nodeCircle.data); graphVis.update(); }
-        function selectNothing() { selection = []; graphVis.update(); }
+        function selectNode(nodeCircle) { selection.push(nodeCircle.data); graphVis.update(); graphVis.resumeForce(); }
+        function selectNothing() { selection = []; graphVis.update(); graphVis.resumeForce(); }
 
         function describeVisNode(visNode) {
             var isSelected = selection.indexOf(visNode) !== -1;
 
             var baseColor = palette(visNode.clusterId);
             return {
+                radius: isSelected ? 50 : 10,
                 color: isSelected ? d3.rgb(baseColor).brighter(1) : baseColor,
                 borderColor: isSelected ? baseColor : d3.rgb(baseColor).darker(1)
             };
@@ -76,7 +77,7 @@ svg {
         }
 
         var nodes = [];
-        for (i = 0; i < 10; i++) {
+        for (i = 0; i < 5; i++) {
             var clusterId = null;
             if (Math.random() * 10 > 2)
                 clusterId = "cluster" + (Math.floor(Math.random() * clusters.length) + 1);
