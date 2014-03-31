@@ -535,16 +535,18 @@ GraphVis = function (renderer, options) {
     //[cf]
     //[of]:    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes) {
     function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes, clusterVisLinks) {
+        var id = "placeholder-" + visCluster.id;
         var radius = 20;
         var color = "#333";
         var borderColor = "#000";
         var opacity = 1;
         var hoverText = "";
     
+        var oldNodeCircle = _.find(nodeCircles, function (nodeCircle) { return nodeCircle.id === id; });
         var w = renderer.width();
         var h = renderer.height();
-        var x = (w / 2 + (Math.random() * (w / 2) - w / 4));
-        var y = (h / 2 + (Math.random() * (h / 2) - h / 4));
+        x = oldNodeCircle ? oldNodeCircle.x : (w / 2 + (Math.random() * (w / 2) - w / 4));
+        y = oldNodeCircle ? oldNodeCircle.y : (h / 2 + (Math.random() * (h / 2) - h / 4));
         
         var data = {
             visCluster: visCluster,
@@ -570,7 +572,7 @@ GraphVis = function (renderer, options) {
             }
         };
         
-        return new NodeCircle("placeholder-" + visCluster.id, data, x, y, radius, color, borderColor, opacity, hoverText, false, eventHandlers);
+        return new NodeCircle(id, data, x, y, radius, color, borderColor, opacity, hoverText, false, eventHandlers);
     }
     //[cf]
     //[of]:    function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {

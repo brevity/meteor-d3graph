@@ -175,11 +175,15 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     var label = $(containerElement.find("g.label")[0]);
 
     var evt = document.createEvent('MouseEvents');
-    evt.initEvent('click', true, false);
     
     // Execute
+    evt.initEvent('click', true, false);
     link[0].dispatchEvent(evt);
+
+    evt.initEvent('click', true, false);
     cluster[0].dispatchEvent(evt);
+
+    evt.initEvent('click', true, false);
     label[0].dispatchEvent(evt);
     
     // Verify

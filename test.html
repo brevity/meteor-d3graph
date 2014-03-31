@@ -38,20 +38,17 @@ svg {
 <script>
     $(function () {
         var graphVis;
-        var selection = [];
         
         var palette = d3.scale.category10();
+
+        var selection = [];
         function selectNode(nodeCircle) { selection.push(nodeCircle.data); graphVis.update(); }
         function selectNothing() { selection = []; graphVis.update(); }
 
         function describeVisNode(visNode) {
-            var isSelected = false;
-            
-            if (selection.indexOf(visNode) !== -1)
-                isSelected = true;
-            
+            var isSelected = selection.indexOf(visNode) !== -1;
+
             var baseColor = palette(visNode.clusterId);
-            
             return {
                 color: isSelected ? d3.rgb(baseColor).brighter(1) : baseColor,
                 borderColor: isSelected ? baseColor : d3.rgb(baseColor).darker(1)
