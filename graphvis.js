@@ -616,7 +616,8 @@ GraphVis = function (renderer, options) {
     
         if (options.describeVisLink) {
             var description = options.describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor);
-            
+    
+            if (description.thickness) thickness = description.thickness;
             if (description.color) color = description.color;
             if (description.opacity) opacity = description.opacity;
             if (description.hoverText) hoverText = description.hoverText;

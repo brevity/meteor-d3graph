@@ -48,28 +48,36 @@ svg {
         var hoveredNode = null;
         function selectNode(nodeCircle) { selection.push(nodeCircle.data); graphVis.update(); }
         function selectNothing() { selection = []; graphVis.update(); }
-
         function hoverNode(nodeCircle) { hoveredNode = nodeCircle.data;  graphVis.update(); }
         function unhoverNode(nodeCircle) { hoveredNode = null; graphVis.update(); }
 
+        // This function decides the color etc. of nodes given the current state of selection and hovering.
         function describeVisNode(visNode, radiusFactor) {
             var isSelected = selection.indexOf(visNode) !== -1;
             var dimmed = (hoveredNode && hoveredNode !== visNode);
+            
+            // This is a dimmed node. See if it's connected to the hovered node and undim it
+            if (dimmed) {
+                var foundLink = _.find(links, function (l) { return l.sourceNodeId === hoveredNode.id && l.targetNodeId === visNode.id || 
+                        l.sourceNodeId === visNode.id && l.targetNodeId === hoveredNode.id});
+                if (foundLink)
+                    dimmed = false;
+            }
+            
             var baseColor = palette(visNode.clusterId);
             return {
                 color: isSelected ? baseColor : (dimmed ? "#888" : baseColor),
                 borderColor: isSelected ? "#f00" : (dimmed ? "#333" : d3.rgb(baseColor).darker(1)),
                 opacity: isSelected ? 1 : (dimmed ? 0.3 : 1),
-                radius: visNode.data.radius
+                radius: visNode.data.value
             };
         }
         
+        // This one simply returns interpolated values between the two nodes
         function describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor) {
-            var linkColor = d3.interpolateRgb(sourceNodeCircle.color, targetNodeCircle.color)(0.5);
-            
-            var dimmed = hoveredNode && (visLink.sourceNodeId !== hoveredNode.id && visLink.targetNodeId !== hoveredNode.id);
             return {
-                color: linkColor,
+                thickness: (sourceNodeCircle.radius + targetNodeCircle.radius) / 10,
+                color: d3.interpolateRgb(sourceNodeCircle.color, targetNodeCircle.color)(0.5),
                 opacity: (sourceNodeCircle.opacity + targetNodeCircle.opacity) / 2
             };
         }
@@ -91,23 +99,27 @@ svg {
 
         var i;
 
+        // Create some random clusters
         for (i = 0; i < 3; i++) {
             var collapsed = false; // i < 5;
             var c = new VisCluster("cluster" + (i + 1), null, collapsed);
             clusters.push(c);
         }
 
+        // Some random nodes
         for (i = 0; i < 50; i++) {
             var clusterId = null;
             if (Math.random() * 10 > 2)
                 clusterId = "cluster" + (Math.floor(Math.random() * clusters.length) + 1);
+            
             data = {
-                radius: Math.random() * 30 + 10
+                value: Math.random() * 30 + 10      // This is just a property. It is used by describeNode to determine the radius
             };
             var n = new VisNode("node" + (i + 1), data, clusterId);
             nodes.push(n);
         }
         
+        // And some random links
         for (i = 0; i < 10; i++) {
             var n1 = nodes[Math.floor(Math.random() * nodes.length)];
             var n2 = nodes[Math.floor(Math.random() * nodes.length)];
