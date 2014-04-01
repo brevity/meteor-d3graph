@@ -69,6 +69,7 @@ SvgRenderer = function (containerElement, options) {
     
     var svg, defs;
     var layers = {};
+    var previousRadiusFactor;   // Used to check if we need to update sizes
     
     var width = containerElement.width();
     var height = containerElement.height();
@@ -104,6 +105,8 @@ SvgRenderer = function (containerElement, options) {
         
         return "M " + sx + " " + sy + " L " + tx + " " + ty;
     }
+    
+    
     //[cf]
 
     this.containerElement = function () { return containerElement; };
@@ -127,10 +130,57 @@ SvgRenderer = function (containerElement, options) {
     }
     //[cf]
     
-    function allEventNames(elementArray) {
+    //[of]:    function attachEvents(selection, renderItems) {
+    function attachEvents(selection, renderItems) {
+    
         // We want to know all the different types of events that exist in any of the elements. This cryptic oneliner does that:
-        return _.uniq(_.flatten(_.map(_.pluck(elementArray, "eventHandlers"), function (eh) { return _.keys(eh); })));
+        var allEvents = _.uniq(_.flatten(_.map(_.pluck(renderItems, "eventHandlers"), function (eh) { return _.keys(eh); })));
+    
+        _.each(allEvents, function (ce) {
+            if (ce === "click" || ce === "dblclick")
+                return;
+                
+            selection.on(ce, function (d, i) { 
+                if (d.eventHandlers.hasOwnProperty(ce)) {
+                    d.eventHandlers[ce](d, i, d3.event); 
+                    d3.event.stopPropagation();
+                }
+            });
+        });
+        
+        var doubleClickDelay = 300;
+        var singleClickTimer;
+        var storedEvent;
+        
+        // Handle click and dblclick..
+        selection.on("click", function (d, i) {
+            if (d.eventHandlers.hasOwnProperty("click") && d.eventHandlers.hasOwnProperty("dblclick")) {
+                if (singleClickTimer) {
+                    d.eventHandlers.dblclick(d, i, d3.event);
+                    clearTimeout(singleClickTimer);
+                    singleClickTimer = null;
+                } else {
+                    storedEvent = d3.event;
+                    singleClickTimer = setTimeout(function () {
+                        d.eventHandlers.click(d, i, storedEvent);
+                        singleClickTimer = null;
+                    }, doubleClickDelay);
+                }
+                d3.event.stopPropagation();
+            } else if (d.eventHandlers.hasOwnProperty("click")) {
+                d.eventHandlers.click(d, i, d3.event);
+                d3.event.stopPropagation();
+            }
+        });
+        
+        selection.on("dblclick", function (d, i) {
+            if (d.eventHandlers.hasOwnProperty("dblclick") && !d.eventHandlers.hasOwnProperty("click")) {
+                d.eventHandlers.dblclick(d, i, d3.event);
+                d3.event.stopPropagation();
+            }
+        });
     }
+    //[cf]
     
     // transitionDuration should only be used by tests/debugging
     this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration) {
@@ -151,16 +201,7 @@ SvgRenderer = function (containerElement, options) {
             .style("opacity", 1e-6)
             .append("svg:title");
         
-        var allClusterEvents = allEventNames(clusterHulls);
-        
-        _.each(allClusterEvents, function (ce) {
-            clusterEnter.on(ce, function (d) { 
-                if (d.eventHandlers.hasOwnProperty(ce)) {
-                    d.eventHandlers[ce](d); 
-                    d3.event.stopPropagation();
-                }
-            });
-        });
+        attachEvents(clusterEnter, clusterHulls);
         
         cluster.exit().transition().duration(transitionDuration)
             .style("opacity", 1e-6)
@@ -191,16 +232,7 @@ SvgRenderer = function (containerElement, options) {
             .style("stroke-width", 1e-6)
             .append("svg:title");
         
-        var allLinkEvents = allEventNames(linkLines);
-        
-        _.each(allLinkEvents, function (le) {
-            linkEnter.on(le, function (d) { 
-                if (d.eventHandlers.hasOwnProperty(le)) {
-                    d.eventHandlers[le](d); 
-                    d3.event.stopPropagation();
-                }
-            });
-        });
+        attachEvents(linkEnter, linkLines);
         
         link.exit().transition().duration(transitionDuration)
             .style("stroke-opacity", 1e-6)
@@ -208,12 +240,10 @@ SvgRenderer = function (containerElement, options) {
             .remove();
         
         link.transition().duration(transitionDuration)
+            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale); })
             .style("stroke-opacity", function (d) { return d.opacity; })
             .style("stroke-width", function (d) { return d.thickness * radiusFactor; })
             .style("stroke", function (d) { return d.color; });
-        
-        link
-            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale); });
             
         link.select("title")
             .text(function (d) { return d.hoverText; });    
@@ -235,16 +265,7 @@ SvgRenderer = function (containerElement, options) {
             .style("opacity", 1e-6)
             .append("svg:title");
         
-        var allNodeEvents = allEventNames(nodeCircles);
-        
-        _.each(allNodeEvents, function (ne) {
-            nodeEnter.on(ne, function (d) { 
-                if (d.eventHandlers.hasOwnProperty(ne)) {
-                    d.eventHandlers[ne](d);
-                    d3.event.stopPropagation();
-                }
-            });
-        });
+        attachEvents(nodeEnter, nodeCircles);
         
         node.exit().transition().duration(transitionDuration)
             .attr("r", 1e-6)
@@ -277,16 +298,7 @@ SvgRenderer = function (containerElement, options) {
             .style("opacity", 1e-6)
             .append("svg:text");
         
-        var allLabelEvents = allEventNames(labelTexts);
-        
-        _.each(allLabelEvents, function (le) {
-            labelEnter.on(le, function (d) { 
-                if (d.eventHandlers.hasOwnProperty(le)) {
-                    d.eventHandlers[le](d); 
-                    d3.event.stopPropagation();
-                }
-            });
-        });
+        attachEvents(labelEnter, labelTexts);
         
         label.exit().transition().duration(transitionDuration)
             .style("opacity", 1e-6)
@@ -304,6 +316,8 @@ SvgRenderer = function (containerElement, options) {
             .style("stroke", function (d) { return d.borderColor; });
         
         //[cf]
+        
+        previousRadiusFactor = radiusFactor;
     };
 
     this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor) {
@@ -325,8 +339,11 @@ SvgRenderer = function (containerElement, options) {
         
         link
             .attr("d", function (d) { return makeLinkPath(d, xScale, yScale); })
-            .style("stroke-width", function (d) { return d.thickness * radiusFactor; });
         
+        if (radiusFactor !== previousRadiusFactor) {
+            link
+                .style("stroke-width", function (d) { return d.thickness * radiusFactor; });
+        }
         //[cf]
         //[of]:        Nodes
         //[c]Nodes
@@ -337,10 +354,15 @@ SvgRenderer = function (containerElement, options) {
         node
             .attr("cx", function (d) { return xScale(d.x); })
             .attr("cy", function (d) { return yScale(d.y); })
-            .attr("r", function (d) { return d.radius * radiusFactor; })
-            .style("stroke-width", function (d) { return 2 * radiusFactor; });
         
+        if (radiusFactor !== previousRadiusFactor) {
+            node
+                .attr("r", function (d) { return d.radius * radiusFactor; })
+                .style("stroke-width", function (d) { return 2 * radiusFactor; });
+        }
         //[cf]
+        
+        previousRadiusFactor = radiusFactor;
     };
     
     initialize();
@@ -525,13 +547,17 @@ GraphVis = function (renderer, options) {
             if (description.radius) radius = description.radius;
             if (description.color) color = description.color;
             if (description.borderColor) borderColor = description.borderColor;
-            if (description.opacity) opacity = description.opactiry;
+            if (description.opacity) opacity = description.opacity;
             if (description.hoverText) hoverText = description.hoverText;
         }
         
         eventHandlers = {};
         
         if (options.onNodeClick) { eventHandlers.click = options.onNodeClick; }
+        if (options.onNodeMouseOver) { eventHandlers.mouseover = options.onNodeMouseOver; }
+        if (options.onNodeMouseOut) { eventHandlers.mouseout = options.onNodeMouseOut; }
+    
+        eventHandlers.dblclick = function (d) { console.log("Doubleclick on ", d); };
             
         return new NodeCircle(visNode.id, visNode, x, y, radius, color, borderColor, opacity, hoverText, fixed, eventHandlers);
     }
@@ -587,6 +613,14 @@ GraphVis = function (renderer, options) {
         var markerEnd = false;
         var dashPattern = null;
         var hoverText = "";
+    
+        if (options.describeVisLink) {
+            var description = options.describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor);
+            
+            if (description.color) color = description.color;
+            if (description.opacity) opacity = description.opacity;
+            if (description.hoverText) hoverText = description.hoverText;
+        }
     
         var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
             visLink, 
@@ -813,7 +847,7 @@ GraphVis = function (renderer, options) {
             .links(linkLines)
             .size([renderer.width(), renderer.height()])
             .on("tick", function (e) {
-                _(nodeCircles).each(cluster(0.01));
+                //_(nodeCircles).each(cluster(0.01));
                 _(nodeCircles).each(collide(0.5));
                 renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
             })

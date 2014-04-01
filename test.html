@@ -40,19 +40,37 @@ svg {
         var graphVis;
         
         var palette = d3.scale.category10();
+        var clusters = [];
+        var nodes = [];
+        var links = [];
 
         var selection = [];
-        function selectNode(nodeCircle) { selection.push(nodeCircle.data); graphVis.update(); graphVis.resumeForce(); }
-        function selectNothing() { selection = []; graphVis.update(); graphVis.resumeForce(); }
+        var hoveredNode = null;
+        function selectNode(nodeCircle) { selection.push(nodeCircle.data); graphVis.update(); }
+        function selectNothing() { selection = []; graphVis.update(); }
 
-        function describeVisNode(visNode) {
+        function hoverNode(nodeCircle) { hoveredNode = nodeCircle.data;  graphVis.update(); }
+        function unhoverNode(nodeCircle) { hoveredNode = null; graphVis.update(); }
+
+        function describeVisNode(visNode, radiusFactor) {
             var isSelected = selection.indexOf(visNode) !== -1;
-
+            var dimmed = (hoveredNode && hoveredNode !== visNode);
             var baseColor = palette(visNode.clusterId);
             return {
-                radius: isSelected ? 50 : 10,
-                color: isSelected ? d3.rgb(baseColor).brighter(1) : baseColor,
-                borderColor: isSelected ? baseColor : d3.rgb(baseColor).darker(1)
+                color: isSelected ? baseColor : (dimmed ? "#888" : baseColor),
+                borderColor: isSelected ? "#f00" : (dimmed ? "#333" : d3.rgb(baseColor).darker(1)),
+                opacity: isSelected ? 1 : (dimmed ? 0.3 : 1),
+                radius: visNode.data.radius
+            };
+        }
+        
+        function describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor) {
+            var linkColor = d3.interpolateRgb(sourceNodeCircle.color, targetNodeCircle.color)(0.5);
+            
+            var dimmed = hoveredNode && (visLink.sourceNodeId !== hoveredNode.id && visLink.targetNodeId !== hoveredNode.id);
+            return {
+                color: linkColor,
+                opacity: (sourceNodeCircle.opacity + targetNodeCircle.opacity) / 2
             };
         }
 
@@ -60,7 +78,11 @@ svg {
         graphVis = new GraphVis(svgRenderer, {
             onClick: selectNothing,
             onNodeClick: selectNode,
-            describeVisNode: describeVisNode
+            onNodeMouseOver: hoverNode,
+            onNodeMouseOut: unhoverNode,
+            
+            describeVisNode: describeVisNode,
+            describeVisLink: describeVisLink
         });
 
         // Allow access from console:
@@ -69,24 +91,24 @@ svg {
 
         var i;
 
-        var clusters = [];
         for (i = 0; i < 3; i++) {
             var collapsed = false; // i < 5;
             var c = new VisCluster("cluster" + (i + 1), null, collapsed);
             clusters.push(c);
         }
 
-        var nodes = [];
-        for (i = 0; i < 5; i++) {
+        for (i = 0; i < 50; i++) {
             var clusterId = null;
             if (Math.random() * 10 > 2)
                 clusterId = "cluster" + (Math.floor(Math.random() * clusters.length) + 1);
-            var n = new VisNode("node" + (i + 1), null, clusterId);
+            data = {
+                radius: Math.random() * 30 + 10
+            };
+            var n = new VisNode("node" + (i + 1), data, clusterId);
             nodes.push(n);
         }
         
-        var links = [];
-        for (i = 0; i < 6; i++) {
+        for (i = 0; i < 10; i++) {
             var n1 = nodes[Math.floor(Math.random() * nodes.length)];
             var n2 = nodes[Math.floor(Math.random() * nodes.length)];
             
