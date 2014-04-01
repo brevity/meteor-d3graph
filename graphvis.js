@@ -276,7 +276,7 @@ SvgRenderer = function (containerElement, options) {
             .attr("cx", function (d) { return xScale(d.x); })
             .attr("cy", function (d) { return yScale(d.y); })
             .attr("r", function (d) { return d.radius * radiusFactor; })
-            .style("stroke-width", function (d) { return 2 * radiusFactor; })
+            .style("stroke-width", function (d) { return 3 * radiusFactor; })
             .style("opacity", function (d) { return d.opacity; })
             .style("fill", function (d) { return d.color; })
             .style("stroke", function (d) { return d.borderColor; });
@@ -358,7 +358,7 @@ SvgRenderer = function (containerElement, options) {
         if (radiusFactor !== previousRadiusFactor) {
             node
                 .attr("r", function (d) { return d.radius * radiusFactor; })
-                .style("stroke-width", function (d) { return 2 * radiusFactor; });
+                .style("stroke-width", function (d) { return 3 * radiusFactor; });
         }
         //[cf]
         
@@ -446,71 +446,23 @@ GraphVis = function (renderer, options) {
 
     //[of]:    function clusterHullFromVisCluster(visCluster) {
     function clusterHullFromVisCluster(visCluster) {
-        var color = "#f88";
+        var color = "#888";
         var borderColor = d3.rgb(color).darker(1);
         var opacity = 0.2;
         var hoverText = "";
+    
+        if (options.describeVisCluster) {
+            var description = options.describeVisCluster(visCluster, [], radiusFactor); // TODO: Give nodecircles along
+    
+            if (description.color) color = description.color;
+            if (description.opacity) opacity = description.opacity;
+            if (description.hoverText) hoverText = description.hoverText;
+        }
     
         var eventHandlers = {
             "dblclick": function (d) { 
                 visCluster.isCollapsed = true;
                 self.update();
-                return;
-                
-    /*            // Remove the cluster hull
-                clusterHulls = _.without(clusterHulls, d);
-    
-                // Remove nodes in the cluster
-                var removedNodeCircles = _.filter(nodeCircles, function (nc) { return nc.data.clusterId === d.id; });
-                nodeCircles = _.filter(nodeCircles, function (nc) { return nc.data.clusterId !== d.id; });
-    
-                // And insert a placeholder instead.
-                var xSum = _.reduce(removedNodeCircles, function (sum, nc) { return sum + nc.x; }, 0);
-                var ySum = _.reduce(removedNodeCircles, function (sum, nc) { return sum + nc.y; }, 0);
-                
-                var placeholderNode = nodeCircleFromCollapsedCluster(d.visCluster, d.visNodes);
-                placeholderNode.x = xSum / removedNodeCircles.length;
-                placeholderNode.y = ySum / removedNodeCircles.length;
-                nodeCircles.push(placeholderNode);
-                
-                // Remove links to and from cluster
-                var removedLinks = _.filter(linkLines, function (ll) { return ll.source.data.clusterId === d.id || ll.target.data.clusterId === d.id; });
-                linkLines = _.filter(linkLines, function (ll) { return ll.source.data.clusterId !== d.id && ll.target.data.clusterId !== d.id; });
-    
-                // Reestablish links to and from this cluster
-                var inboundLinks = {};  // maps using node-id as key
-                var outboundLinks = {};
-                
-                _.each(removedLinks, function (linkLine) {
-                    if (linkLine.source.data.clusterId === linkLine.target.data.clusterId)    // Link within cluster. Skip it.
-                        return;
-                    
-                    if (linkLine.source.data.clusterId === d.id) {
-                        // This link points out from this cluster
-                        if (!outboundLinks.hasOwnProperty(linkLine.target.id))
-                            outboundLinks[linkLine.target.id] = [];
-    
-                        outboundLinks[linkLine.target.id].push(linkLine);                    
-                    } else {
-                        // This link points into this cluster
-                        if (!inboundLinks.hasOwnProperty(linkLine.source.id))
-                            inboundLinks[linkLine.source.id] = [];
-    
-                        inboundLinks[linkLine.source.id].push(linkLine);                    
-                    }
-                });
-                
-                _.each(inboundLinks, function (linkLineCollection) {
-                    var placeholderLink = linkLineForCluster(linkLineCollection, placeholderNode, true);
-                    linkLines.push(placeholderLink);
-                });
-    
-                _.each(outboundLinks, function (linkLineCollection) {
-                    var placeholderLink = linkLineForCluster(linkLineCollection, placeholderNode, false);
-                    linkLines.push(placeholderLink);
-                });
-    
-                renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor); */
             }
         };
     
@@ -808,8 +760,8 @@ GraphVis = function (renderer, options) {
     //[cf]
     //[of]:    function collide(alpha) {
     function collide(alpha) {
-        var padding = 1.5; // separation between same-color nodes
-        var clusterPadding = 6; // separation between different-color nodes
+        var padding = 10; // separation between same-color nodes
+        var clusterPadding = 20; // separation between different-color nodes
         var maxRadius = 12;
      
         var quadtree = d3.geom.quadtree(nodeCircles);
@@ -848,7 +800,7 @@ GraphVis = function (renderer, options) {
             .links(linkLines)
             .size([renderer.width(), renderer.height()])
             .on("tick", function (e) {
-                //_(nodeCircles).each(cluster(0.01));
+                _(nodeCircles).each(cluster(0.01));
                 _(nodeCircles).each(collide(0.5));
                 renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
             })
@@ -873,7 +825,7 @@ GraphVis = function (renderer, options) {
                         (n2.link_count || (n1.clusterId != n2.clusterId ? n2.group_data.link_count : 0))),
                     100);*/
                 
-                return n1.clusterId === n2.clusterId ? 1 : 5;
+                return n1.clusterId === n2.clusterId ? 1 : 2;
             })
             .linkStrength(function(l, i) { return 1; })
             .gravity(0.5)   // gravity+charge tweaked to ensure good 'grouped' view (e.g. green group not smack between blue&orange, ...

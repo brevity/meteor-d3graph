@@ -23,7 +23,7 @@ svg {
   margin: auto;
   width: 960px;
   height: 600px;
-  background-color: #f0f0f0;
+  background-color: #333;
 }
 
 </style>
@@ -64,10 +64,10 @@ svg {
                     dimmed = false;
             }
             
-            var baseColor = palette(visNode.clusterId);
+            var baseColor = d3.rgb(palette(visNode.clusterId)).darker(0.5);
             return {
                 color: isSelected ? baseColor : (dimmed ? "#888" : baseColor),
-                borderColor: isSelected ? "#f00" : (dimmed ? "#333" : d3.rgb(baseColor).darker(1)),
+                borderColor: isSelected ? "#fff" : (dimmed ? "#333" : d3.rgb(baseColor).brighter(1.3)),
                 opacity: isSelected ? 1 : (dimmed ? 0.3 : 1),
                 radius: visNode.data.value
             };
@@ -82,6 +82,16 @@ svg {
             };
         }
 
+        // This describer simply finds the color from the cluster
+        function describeVisCluster(visCluster, nodeCircles, radiusFactor) {
+            var color =  palette(visCluster.id);
+            console.log("Describing ", visCluster.id, " - color: ", color);
+            return {
+                color: color,
+                opacity: 0.2
+            }
+        }
+
         var svgRenderer = new SvgRenderer($("#graph-vis-container"), {});
         graphVis = new GraphVis(svgRenderer, {
             onClick: selectNothing,
@@ -90,7 +100,8 @@ svg {
             onNodeMouseOut: unhoverNode,
             
             describeVisNode: describeVisNode,
-            describeVisLink: describeVisLink
+            describeVisLink: describeVisLink,
+            describeVisCluster: describeVisCluster
         });
 
         // Allow access from console:
@@ -109,7 +120,7 @@ svg {
         // Some random nodes
         for (i = 0; i < 50; i++) {
             var clusterId = null;
-            if (Math.random() * 10 > 2)
+            if (Math.random() * 10 > 5)
                 clusterId = "cluster" + (Math.floor(Math.random() * clusters.length) + 1);
             
             data = {

@@ -433,8 +433,8 @@ Tinytest.add(testLevel + "Expand cluster simple test", function (test) {
     
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Describer function test", function (test) {
-Tinytest.add(testLevel + "Describer function test", function (test) {
+//[of]:Tinytest.add(testLevel + "Node describer function simple test", function (test) {
+Tinytest.add(testLevel + "Node describer function simple test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var radiusFactorFromDescription;
@@ -453,6 +453,35 @@ Tinytest.add(testLevel + "Describer function test", function (test) {
     
     // Verify
     test.equal(mockRenderer.nodeCircles.length, 1, "There should be one NodeCircle representing our one VisNode");
+    
+    var nc = mockRenderer.nodeCircles[0];
+    test.equal(radiusFactorFromDescription, 0.8, "We haven't zoomed in or out so factor should be 1 which is scaled to 0.8 per the default scale");
+    test.equal(nc.color, "#f00", "The NodeCircle should have have the color that we assigned in describeVisNode");
+    test.equal(nc.borderColor, "#800", "The NodeCircle should have have the border color that we assigned in describeVisNode");
+});
+//[cf]
+//[of]:Tinytest.add(testLevel + "Link describer function simple test", function (test) {
+Tinytest.add(testLevel + "Link describer function simple test", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    var radiusFactorFromDescription;
+    function describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor) {
+        radiusFactorFromDescription = radiusFactor;
+        return {
+            color: "#f00",
+            borderColor: "#800"
+        }
+    }
+    var graphVis = new GraphVis(mockRenderer, { describeVisNode: describeVisNode });
+    var node1 = new VisNode("node1", null, null, null, null);
+    var node2 = new VisNode("node2", null, null, null, null);
+    var link1 = new VisLink(null, "node1", "node2");
+    
+    // Execute
+    graphVis.update([node1, node2], [link1], []);
+    
+    // Verify
+    test.equal(mockRenderer.linkLines.length, 1, "There should be one NodeCircle representing our one VisNode");
     
     var nc = mockRenderer.nodeCircles[0];
     test.equal(radiusFactorFromDescription, 0.8, "We haven't zoomed in or out so factor should be 1 which is scaled to 0.8 per the default scale");
