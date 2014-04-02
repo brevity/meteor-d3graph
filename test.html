@@ -70,13 +70,13 @@ svg {
                 borderColor: isSelected ? "#fff" : (dimmed ? "#333" : d3.rgb(baseColor).brighter(1.3)),
                 opacity: isSelected ? 1 : (dimmed ? 0.3 : radiusFactor),
                 radius: visNode.data.value,
-                label: {
+                label: visNode.data.value * radiusFactor > 25 ? {
                     text: visNode.id,
                     offsetX: visNode.data.value,
                     offsetY: -visNode.data.value,
-                    fontSize: visNode.data.value / 2,
+                    fontSize: visNode.data.value / 1.5,
                     borderColor: "#000"
-                }
+                } : null
             };
         }
         
