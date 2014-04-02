@@ -18,7 +18,7 @@ NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hove
     this.eventHandlers = eventHandlers;
 };
 
-LinkLine = function (id, data, source, target, thickness, color, opacity, markerStart, markerEnd, dashPattern, hoverText, eventHandlers) {
+LinkLine = function (id, data, source, target, thickness, color, opacity, marker, dashPattern, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
     this.source = source;   // These should be NodeCircle instances
@@ -26,8 +26,7 @@ LinkLine = function (id, data, source, target, thickness, color, opacity, marker
     this.thickness = thickness;
     this.color = color;
     this.opacity = opacity;
-    this.markerStart = markerStart;
-    this.markerEnd = markerEnd;
+    this.markerEnd = marker;
     this.dashPattern = dashPattern;
     this.hoverText = hoverText;
     this.eventHandlers = eventHandlers;
@@ -678,8 +677,7 @@ GraphVis = function (renderer, options) {
         var thickness = 1;
         var color = "#300";
         var opacity = 1;
-        var markerStart = false;
-        var markerEnd = false;
+        var marker = false;
         var dashPattern = null;
         var hoverText = "";
     
@@ -690,8 +688,7 @@ GraphVis = function (renderer, options) {
             if (description.color) color = description.color;
             if (description.opacity) opacity = description.opacity;
             if (description.hoverText) hoverText = description.hoverText;
-            if (description.markerStart) markerStart = description.markerStart;
-            if (description.markerEnd) markerEnd = description.markerEnd;
+            if (description.marker) marker = description.marker;
         }
     
         var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
@@ -701,8 +698,7 @@ GraphVis = function (renderer, options) {
             thickness, 
             color, 
             opacity, 
-            markerStart, 
-            markerEnd, 
+            marker,
             dashPattern, 
             hoverText,
             {});
@@ -715,8 +711,7 @@ GraphVis = function (renderer, options) {
         var thickness = 2;
         var color = "#0f0";
         var opacity = 1;
-        var markerStart = false;
-        var markerEnd = false;
+        var marker = false;
         var dashPattern = null;
         var hoverText = "";
     
@@ -727,14 +722,12 @@ GraphVis = function (renderer, options) {
             thickness, 
             color, 
             opacity, 
-            markerStart, 
-            markerEnd, 
+            marker,
             dashPattern, 
             hoverText,
             {});
     
-        return linkLine;
-        
+        return linkLine;    
     }
     //[cf]
 

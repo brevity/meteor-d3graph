@@ -82,7 +82,7 @@ Tinytest.addAsync(testLevel + "Link test", function (test, next) {
     var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, {}); 
     var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 1, "", false, {}); 
     
-    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, false, null, "Hover text", {});
+    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, null, "Hover text", {});
     
     // Execute
     svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 1, 0);
@@ -164,7 +164,7 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     var nc1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, {});
     var nc2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 1, "", false, {});
     
-    var linkLine = new LinkLine("link1", null, nc1, nc2, 1, "#f00", 1, false, false, null, "", eventHandlers);
+    var linkLine = new LinkLine("link1", null, nc1, nc2, 1, "#f00", 1, false, null, "", eventHandlers);
     var clusterHull = new ClusterHull("cluster1", null, null, [], [], [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
     var labelText = new LabelText("label1", null, "label text", 10, 10, 0, 0, 10, "#f00", "#800", 1, "", eventHandlers);
     
@@ -199,7 +199,7 @@ Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
     var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, {}); 
     var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 1, "", false, {}); 
     
-    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, false, null, "Hover text", {});
+    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, null, "Hover text", {});
     
     // Execute
     svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 1, 0);
@@ -208,7 +208,7 @@ Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
     setTimeout(function () {
         var links = containerElement.find("path.link");
         var link = $(links[0]);
-        test.equal(link.attr("marker-start"), "url(#marker-2-ff0000)", "The link should have the marker matching the color and size set");
+        test.equal(link.attr("marker-end"), "url(#marker-2-ff0000)", "The link should have the marker matching the color and size set");
         
         var markers = containerElement.find("marker");
         test.equal(markers.length, 1, "There should be exactly one marker defined");
