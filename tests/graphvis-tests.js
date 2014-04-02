@@ -166,7 +166,7 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     
     var linkLine = new LinkLine("link1", null, nc1, nc2, 1, "#f00", 1, false, false, null, "", eventHandlers);
     var clusterHull = new ClusterHull("cluster1", null, null, [], [], [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
-    var labelText = new LabelText("label1", null, "label text", 10, 10, 10, "#f00", "#800", 1, "", eventHandlers);
+    var labelText = new LabelText("label1", null, "label text", 10, 10, 0, 0, 10, "#f00", "#800", 1, "", eventHandlers);
     
     svgRenderer.update([clusterHull], [linkLine], [nc1, nc2], [labelText], idScale, idScale, 1, 0);
     var link = $(containerElement.find("path.link")[0]);
@@ -500,6 +500,35 @@ Tinytest.add(testLevel + "Link describer function simple test", function (test) 
     test.equal(ll.thickness, 2, "The LinkLine should have have the thickness that we assigned in describeVisLink");
 });
 //[cf]
+//[of]:Tinytest.add(testLevel + "Label test", function (test) {
+Tinytest.add(testLevel + "Label test", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    function describeVisNode(visNode, radiusFactor) {
+        return {
+            label: {
+                text: "Label text",
+                fontSize: 14,
+                color: "#f00"
+            }
+        }
+    }
+    var graphVis = new GraphVis(mockRenderer, { describeVisNode: describeVisNode });
+    var node1 = new VisNode("node1", null, null, null, null);
+    
+    // Execute
+    graphVis.update([node1], [], []);
+    
+    // Verify
+    test.equal(mockRenderer.labelTexts.length, 1, "There should be one LabelText representing our one VisNode");
+    
+    var lt = mockRenderer.labelTexts[0];
+    test.equal(lt.text, "Label text", "The LabelText should have the text that we assigned in describeVisNode");
+    test.equal(lt.fontSize, 14, "The LabelText should have have the font size that we assigned in describeVisNode");
+    test.equal(lt.color, "#f00", "The LabelText should have have the color that we assigned in describeVisNode");
+});
+//[cf]
+
 
 
 
