@@ -464,15 +464,24 @@ Tinytest.add(testLevel + "Node describer function simple test", function (test) 
 Tinytest.add(testLevel + "Link describer function simple test", function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
-    var radiusFactorFromDescription;
+    
+    var visLinkFromDescription, 
+        sourceNodeCircleFromDescription,
+        targetNodeCircleFromDescription,
+        radiusFactorFromDescription;
+        
     function describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor) {
+        visLinkFromDescription = visLink;
+        sourceNodeCircleFromDescription = sourceNodeCircle;
+        targetNodeCircleFromDescription = targetNodeCircle;
         radiusFactorFromDescription = radiusFactor;
+        
         return {
             color: "#f00",
-            borderColor: "#800"
+            thickness: 2
         }
     }
-    var graphVis = new GraphVis(mockRenderer, { describeVisNode: describeVisNode });
+    var graphVis = new GraphVis(mockRenderer, { describeVisLink: describeVisLink });
     var node1 = new VisNode("node1", null, null, null, null);
     var node2 = new VisNode("node2", null, null, null, null);
     var link1 = new VisLink(null, "node1", "node2");
@@ -481,12 +490,14 @@ Tinytest.add(testLevel + "Link describer function simple test", function (test) 
     graphVis.update([node1, node2], [link1], []);
     
     // Verify
-    test.equal(mockRenderer.linkLines.length, 1, "There should be one NodeCircle representing our one VisNode");
+    test.equal(mockRenderer.linkLines.length, 1, "There should be one LinkLine representing our one VisLink");
     
-    var nc = mockRenderer.nodeCircles[0];
+    var ll = mockRenderer.linkLines[0];
     test.equal(radiusFactorFromDescription, 0.8, "We haven't zoomed in or out so factor should be 1 which is scaled to 0.8 per the default scale");
-    test.equal(nc.color, "#f00", "The NodeCircle should have have the color that we assigned in describeVisNode");
-    test.equal(nc.borderColor, "#800", "The NodeCircle should have have the border color that we assigned in describeVisNode");
+    test.equal(sourceNodeCircleFromDescription.id, "node1", "describeVisLink should be fed with a sourceNodeCircle representing node1");
+    test.equal(targetNodeCircleFromDescription.id, "node2", "describeVisLink should be fed with a targetNodeCircle representing node2");
+    test.equal(ll.color, "#f00", "The LinkLine should have have the color that we assigned in describeVisLink");
+    test.equal(ll.thickness, 2, "The LinkLine should have have the thickness that we assigned in describeVisLink");
 });
 //[cf]
 
