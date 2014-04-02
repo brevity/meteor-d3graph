@@ -189,6 +189,38 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     test.equal(clickCount, 3, "We should have registered three clicks");
 });
 //[cf]
+//[of]:Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
+Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
+    // Setup
+    var containerElement = $("<div />");
+    var svgRenderer = new SvgRenderer(containerElement, {});
+    var idScale = d3.scale.linear();
+    
+    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, {}); 
+    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 1, "", false, {}); 
+    
+    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, false, null, "Hover text", {});
+    
+    // Execute
+    svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 1, 0);
+    
+    // Verify
+    setTimeout(function () {
+        var links = containerElement.find("path.link");
+        var link = $(links[0]);
+        test.equal(link.attr("marker-start"), "url(#marker-2-ff0000)", "The link should have the marker matching the color and size set");
+        
+        var markers = containerElement.find("marker");
+        test.equal(markers.length, 1, "There should be exactly one marker defined");
+        var marker = $(markers[0]);
+        test.equal(marker.attr("id"), "marker-2-ff0000", "Marker should have an id that expresses size and color");
+        test.equal(link.css("stroke"), "#ff0000", "Link should have the color we gave it");
+        test.equal(link.attr("d"), "M 10 10 L 20 20", "Link path should be a straight line from node1 to node2");
+        next();
+    }, 20);
+});
+
+//[cf]
 
 
 

@@ -110,6 +110,22 @@ SvgRenderer = function (containerElement, options) {
     
     
     //[cf]
+    //[of]:    function makeMarkerDefs(linkLines) {
+    function makeMarkerDefs(linkLines) {
+        var sizeColorCombos = {};
+        
+        _.each(linkLines, function (ll) {
+            if (ll.markerStart || ll.markerEnd) {
+                var size = ll.thickness.toFixed(0);
+                var color = d3.rgb(ll.color).toString(); // This is necessary to convert "red" into "ff0000" etc.
+                var sizeColorCombo = size + "-" + color.substr(1);
+                sizeColorCombos[sizeColorCombo] = { id: sizeColorCombo, size: size, color: color };
+            }
+        });
+        
+        return _.map(sizeColorCombos, function (sizeColorCombo, id) { return sizeColorCombo; });
+    }
+    //[cf]
 
     this.containerElement = function () { return containerElement; };
     this.width = function () { return width; };
@@ -131,7 +147,6 @@ SvgRenderer = function (containerElement, options) {
         });
     }
     //[cf]
-    
     //[of]:    function attachEvents(selection, renderItems) {
     function attachEvents(selection, renderItems) {
     
@@ -221,6 +236,37 @@ SvgRenderer = function (containerElement, options) {
         
         
         //[cf]
+        //[of]:        Link markers
+        //[c]Link markers
+        
+        var markerDefs = makeMarkerDefs(linkLines);
+        
+        var marker = defs.selectAll("marker.generated")
+            .data(markerDefs, function (d) { return d.id })
+        
+        marker.enter()
+            .append('svg:marker')
+                .attr("id", function (d) { return "marker-" + d.id; })
+                .attr("class", "generated")
+                .attr('preserveAspectRatio', 'xMinYMin')
+                .attr('markerUnits', 'userSpaceOnUse')
+                .attr("orient", "auto")
+            .append("svg:path");
+        
+        marker
+                .attr("markerWidth", function (d) { return 5 * d.size * radiusFactor; })
+                .attr("markerHeight", function (d) { return 3 * d.size * radiusFactor; })
+                .attr("viewBox", function (d) { return  "0 0 " + (10 * d.size * radiusFactor) + " " + (10 * d.size * radiusFactor); })
+                .attr("refX", function (d) { return 10 * d.size * radiusFactor; })
+                .attr("refY", function (d) { return 10 * d.size * radiusFactor; })
+                .attr("fill", function (d) { return d.color; })
+            .select("path")
+                .attr("d", function (d) { return "M0,0L" + (10 * d.size * radiusFactor) + "," + (10 * d.size * radiusFactor) + "L0," + (10 * d.size * radiusFactor) + "z"});
+        
+        marker.exit()
+            .remove();
+        
+        //[cf]
         //[of]:        Links
         //[c]Links
         
@@ -243,6 +289,8 @@ SvgRenderer = function (containerElement, options) {
         
         link.transition().duration(transitionDuration)
             .attr("d", function (d) { return makeLinkPath(d, xScale, yScale); })
+            .attr("marker-start", function (d) { return d.markerStart ? ("url(#marker-" + d.thickness.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
+            .attr("marker-end", function (d) { return d.markerEnd ? ("url(#marker-" + d.thickness.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
             .style("stroke-opacity", function (d) { return d.opacity; })
             .style("stroke-width", function (d) { return d.thickness * radiusFactor; })
             .style("stroke", function (d) { return d.color; });
@@ -334,6 +382,37 @@ SvgRenderer = function (containerElement, options) {
         
         cluster
             .attr("d", function (d) { return makeHull(d, xScale, yScale, radiusFactor); });
+        
+        //[cf]
+        //[of]:        Link markers
+        //[c]Link markers
+        
+        var markerDefs = makeMarkerDefs(linkLines);
+        
+        var marker = defs.selectAll("marker.generated")
+            .data(markerDefs, function (d) { return d.id })
+        
+        marker.enter()
+            .append('svg:marker')
+                .attr("id", function (d) { return d.id; })
+                .attr("class", "generated")
+                .attr('preserveAspectRatio', 'xMinYMin')
+                .attr('markerUnits', 'userSpaceOnUse')
+                .attr("orient", "auto")
+            .append("svg:path");
+        
+        marker
+                .attr("markerWidth", function (d) { return 5 * d.size * radiusFactor; })
+                .attr("markerHeight", function (d) { return 3 * d.size * radiusFactor; })
+                .attr("viewBox", function (d) { return  "0 0 " + (10 * d.size * radiusFactor) + " " + (10 * d.size * radiusFactor); })
+                .attr("refX", function (d) { return 10 * d.size * radiusFactor; })
+                .attr("refY", function (d) { return 10 * d.size * radiusFactor; })
+                .attr("fill", function (d) { return d.color; })
+            .select("path")
+                .attr("d", function (d) { return "M0,0L" + (10 * d.size * radiusFactor) + "," + (10 * d.size * radiusFactor) + "L0," + (10 * d.size * radiusFactor) + "z"});
+        
+        marker.exit()
+            .remove();
         
         //[cf]
         //[of]:        Links
@@ -611,6 +690,8 @@ GraphVis = function (renderer, options) {
             if (description.color) color = description.color;
             if (description.opacity) opacity = description.opacity;
             if (description.hoverText) hoverText = description.hoverText;
+            if (description.markerStart) markerStart = description.markerStart;
+            if (description.markerEnd) markerEnd = description.markerEnd;
         }
     
         var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
