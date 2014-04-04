@@ -18,7 +18,7 @@ NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hove
     this.eventHandlers = eventHandlers;
 };
 
-LinkLine = function (id, data, source, target, thickness, color, opacity, markerStart, markerEnd, dashPattern, hoverText, eventHandlers) {
+LinkLine = function (id, data, source, target, thickness, color, opacity, marker, dashPattern, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
     this.source = source;   // These should be NodeCircle instances
@@ -26,19 +26,20 @@ LinkLine = function (id, data, source, target, thickness, color, opacity, marker
     this.thickness = thickness;
     this.color = color;
     this.opacity = opacity;
-    this.markerStart = markerStart;
-    this.markerEnd = markerEnd;
+    this.markerEnd = marker;
     this.dashPattern = dashPattern;
     this.hoverText = hoverText;
     this.eventHandlers = eventHandlers;
 };
 
-LabelText = function (id, data, text, x, y, fontSize, color, borderColor, opacity, hoverText, eventHandlers) {
+LabelText = function (id, data, text, x, y, offsetX, offsetY, fontSize, color, borderColor, opacity, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
     this.text = text;
     this.x = x;
     this.y = y;
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
     this.fontSize = fontSize;
     this.color = color;
     this.borderColor = borderColor;
@@ -108,6 +109,22 @@ SvgRenderer = function (containerElement, options) {
     
     
     //[cf]
+    //[of]:    function makeMarkerDefs(linkLines) {
+    function makeMarkerDefs(linkLines) {
+        var sizeColorCombos = {};
+        
+        _.each(linkLines, function (ll) {
+            if (ll.markerStart || ll.markerEnd) {
+                var size = ll.thickness.toFixed(0);
+                var color = d3.rgb(ll.color).toString(); // This is necessary to convert "red" into "ff0000" etc.
+                var sizeColorCombo = size + "-" + color.substr(1);
+                sizeColorCombos[sizeColorCombo] = { id: sizeColorCombo, size: size, color: color };
+            }
+        });
+        
+        return _.map(sizeColorCombos, function (sizeColorCombo, id) { return sizeColorCombo; });
+    }
+    //[cf]
 
     this.containerElement = function () { return containerElement; };
     this.width = function () { return width; };
@@ -129,7 +146,6 @@ SvgRenderer = function (containerElement, options) {
         });
     }
     //[cf]
-    
     //[of]:    function attachEvents(selection, renderItems) {
     function attachEvents(selection, renderItems) {
     
@@ -219,6 +235,37 @@ SvgRenderer = function (containerElement, options) {
         
         
         //[cf]
+        //[of]:        Link markers
+        //[c]Link markers
+        
+        var markerDefs = makeMarkerDefs(linkLines);
+        
+        var marker = defs.selectAll("marker.generated")
+            .data(markerDefs, function (d) { return d.id })
+        
+        marker.enter()
+            .append('svg:marker')
+                .attr("id", function (d) { return "marker-" + d.id; })
+                .attr("class", "generated")
+                .attr('preserveAspectRatio', 'xMinYMin')
+                .attr('markerUnits', 'userSpaceOnUse')
+                .attr("orient", "auto")
+            .append("svg:path");
+        
+        marker
+                .attr("markerWidth", function (d) { return 5 * d.size * radiusFactor; })
+                .attr("markerHeight", function (d) { return 3 * d.size * radiusFactor; })
+                .attr("viewBox", function (d) { return  "0 0 " + (10 * d.size * radiusFactor) + " " + (10 * d.size * radiusFactor); })
+                .attr("refX", function (d) { return 10 * d.size * radiusFactor; })
+                .attr("refY", function (d) { return 10 * d.size * radiusFactor; })
+                .attr("fill", function (d) { return d.color; })
+            .select("path")
+                .attr("d", function (d) { return "M0,0L" + (10 * d.size * radiusFactor) + "," + (10 * d.size * radiusFactor) + "L0," + (10 * d.size * radiusFactor) + "z"});
+        
+        marker.exit()
+            .remove();
+        
+        //[cf]
         //[of]:        Links
         //[c]Links
         
@@ -241,6 +288,8 @@ SvgRenderer = function (containerElement, options) {
         
         link.transition().duration(transitionDuration)
             .attr("d", function (d) { return makeLinkPath(d, xScale, yScale); })
+            .attr("marker-start", function (d) { return d.markerStart ? ("url(#marker-" + d.thickness.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
+            .attr("marker-end", function (d) { return d.markerEnd ? ("url(#marker-" + d.thickness.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
             .style("stroke-opacity", function (d) { return d.opacity; })
             .style("stroke-width", function (d) { return d.thickness * radiusFactor; })
             .style("stroke", function (d) { return d.color; });
@@ -305,15 +354,18 @@ SvgRenderer = function (containerElement, options) {
             .remove();
         
         label.transition().duration(transitionDuration)
-            .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; });
+            .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; })
+            .style("opacity", function (d) { return d.opacity; })
         
         label.select("text")
             .text(function (d) { return d.text; })
             .transition().duration(transitionDuration)
-            .style("stroke-width", function (d) { return 2 * radiusFactor; })
-            .style("opacity", function (d) { return d.opacity; })
+            .attr("x", function (d) { return d.offsetX * radiusFactor; })
+            .attr("y", function (d) { return d.offsetY * radiusFactor; })
+            .style("font-size", function (d) { return d.fontSize * radiusFactor; })
+        //    .style("stroke-width", function (d) { return 0.5 * radiusFactor; })
             .style("fill", function (d) { return d.color; })
-            .style("stroke", function (d) { return d.borderColor; });
+        //    .style("stroke", function (d) { return d.borderColor; });
         
         //[cf]
         
@@ -329,6 +381,37 @@ SvgRenderer = function (containerElement, options) {
         
         cluster
             .attr("d", function (d) { return makeHull(d, xScale, yScale, radiusFactor); });
+        
+        //[cf]
+        //[of]:        Link markers
+        //[c]Link markers
+        
+        var markerDefs = makeMarkerDefs(linkLines);
+        
+        var marker = defs.selectAll("marker.generated")
+            .data(markerDefs, function (d) { return d.id })
+        
+        marker.enter()
+            .append('svg:marker')
+                .attr("id", function (d) { return d.id; })
+                .attr("class", "generated")
+                .attr('preserveAspectRatio', 'xMinYMin')
+                .attr('markerUnits', 'userSpaceOnUse')
+                .attr("orient", "auto")
+            .append("svg:path");
+        
+        marker
+                .attr("markerWidth", function (d) { return 5 * d.size * radiusFactor; })
+                .attr("markerHeight", function (d) { return 3 * d.size * radiusFactor; })
+                .attr("viewBox", function (d) { return  "0 0 " + (10 * d.size * radiusFactor) + " " + (10 * d.size * radiusFactor); })
+                .attr("refX", function (d) { return 10 * d.size * radiusFactor; })
+                .attr("refY", function (d) { return 10 * d.size * radiusFactor; })
+                .attr("fill", function (d) { return d.color; })
+            .select("path")
+                .attr("d", function (d) { return "M0,0L" + (10 * d.size * radiusFactor) + "," + (10 * d.size * radiusFactor) + "L0," + (10 * d.size * radiusFactor) + "z"});
+        
+        marker.exit()
+            .remove();
         
         //[cf]
         //[of]:        Links
@@ -360,6 +443,19 @@ SvgRenderer = function (containerElement, options) {
                 .attr("r", function (d) { return d.radius * radiusFactor; })
                 .style("stroke-width", function (d) { return 3 * radiusFactor; });
         }
+        //[cf]
+        //[of]:        Labels
+        //[c]Labels
+        
+        var label = layers.labels.selectAll("g.label")
+            .data(labelTexts, function (d) { return d.id; });
+        
+        label
+            .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; });
+        
+        label.select("text")
+            .style("font-size", function (d) { return d.fontSize * radiusFactor; });
+        
         //[cf]
         
         previousRadiusFactor = radiusFactor;
@@ -417,7 +513,8 @@ GraphVis = function (renderer, options) {
         .scaleExtent([0.25, 4])
         .on("zoom", function () { 
             radiusFactor = zoomDensityScale(zoomBehavior.scale());
-            renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+            //renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+            self.update(null, null, null, 0);
 
             if (force) force.resume();
         });
@@ -470,8 +567,24 @@ GraphVis = function (renderer, options) {
     }
     
     //[cf]
-    //[of]:    function nodeCircleFromVisNode(visNode) {
-    function nodeCircleFromVisNode(visNode) {
+    //[of]:    function labelTextFromLabelDescription(label, id, nodeCircleX, nodeCircleY, nodeCircleColor, nodeCircleBorderColor, nodeCircleOpacity) {
+    function labelTextFromLabelDescription(label, id, x, y, nodeCircleColor, nodeCircleBorderColor, nodeCircleOpacity) {
+        var offsetX = _.isUndefined(label.offsetX) ? 0 : label.offsetX;
+        var offsetY = _.isUndefined(label.offsetY) ? 0 : label.offsetY;
+        var fontSize = label.fontSize || 14;
+        var color = label.color || nodeCircleColor;
+        var borderColor = label.borderColor || nodeCircleBorderColor;
+        var opacity = _.isUndefined(label.opacity) ? nodeCircleOpacity : description.opacity;
+        var hoverText = label.hoverText;
+        
+        var eventHandlers = {};
+    
+        return new LabelText(id, null, label.text, x, y, offsetX, offsetY, fontSize, color, borderColor, opacity, hoverText, eventHandlers);
+    }
+    //[cf]
+    //[of]:    function nodeCircleAndLabelTextFromVisNode(visNode) {
+    function nodeCircleAndLabelTextFromVisNode(visNode) {
+        var labelText;
         var x, y, fixed;
     
         if (_.isNumber(visNode.fixedX)) {
@@ -501,6 +614,10 @@ GraphVis = function (renderer, options) {
             if (description.borderColor) borderColor = description.borderColor;
             if (description.opacity) opacity = description.opacity;
             if (description.hoverText) hoverText = description.hoverText;
+            
+            if (description.label) {
+                labelText = labelTextFromLabelDescription(description.label, visNode.id, x, y, color, borderColor, opacity);
+            }
         }
         
         eventHandlers = {};
@@ -511,11 +628,16 @@ GraphVis = function (renderer, options) {
     
         eventHandlers.dblclick = function (d) { console.log("Doubleclick on ", d); };
             
-        return new NodeCircle(visNode.id, visNode, x, y, radius, color, borderColor, opacity, hoverText, fixed, eventHandlers);
+        var nodeCircle = new NodeCircle(visNode.id, visNode, x, y, radius, color, borderColor, opacity, hoverText, fixed, eventHandlers);
+    
+        return {
+            nodeCircle: nodeCircle,
+            labelText: labelText
+        };
     }
     //[cf]
-    //[of]:    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes) {
-    function nodeCircleFromCollapsedCluster(visCluster, clusterVisNodes, clusterVisLinks) {
+    //[of]:    function nodeCircleAndLabelTextFromCollapsedCluster(visCluster, clusterVisNodes) {
+    function nodeCircleAndLabelTextFromCollapsedCluster(visCluster, clusterVisNodes, clusterVisLinks) {
         var id = "placeholder-" + visCluster.id;
         var radius = 20;
         var color = "#333";
@@ -539,21 +661,15 @@ GraphVis = function (renderer, options) {
             "dblclick": function (d) {  
                 visCluster.isCollapsed = false;
                 self.update();
-                return;
-    
-    /*            // Remove the placeholder node
-                nodeCircles = _.filter(nodeCircles, function (nc) { return nc.id !== d.id });
-    
-                console.log("d: ", d);
-    
-                // Remove links to and from placeholder node
-                linkLines = _.filter(linkLines, function (ll) { return ll.source !== d && ll.target !== d; });
-    
-                renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor); */
             }
         };
         
-        return new NodeCircle(id, data, x, y, radius, color, borderColor, opacity, hoverText, false, eventHandlers);
+        var nodeCircle = new NodeCircle(id, data, x, y, radius, color, borderColor, opacity, hoverText, false, eventHandlers);
+        
+        return {
+            nodeCircle: nodeCircle,
+            labelText: null
+        };
     }
     //[cf]
     //[of]:    function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {
@@ -561,8 +677,7 @@ GraphVis = function (renderer, options) {
         var thickness = 1;
         var color = "#300";
         var opacity = 1;
-        var markerStart = false;
-        var markerEnd = false;
+        var marker = false;
         var dashPattern = null;
         var hoverText = "";
     
@@ -573,6 +688,7 @@ GraphVis = function (renderer, options) {
             if (description.color) color = description.color;
             if (description.opacity) opacity = description.opacity;
             if (description.hoverText) hoverText = description.hoverText;
+            if (description.marker) marker = description.marker;
         }
     
         var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
@@ -582,8 +698,7 @@ GraphVis = function (renderer, options) {
             thickness, 
             color, 
             opacity, 
-            markerStart, 
-            markerEnd, 
+            marker,
             dashPattern, 
             hoverText,
             {});
@@ -596,8 +711,7 @@ GraphVis = function (renderer, options) {
         var thickness = 2;
         var color = "#0f0";
         var opacity = 1;
-        var markerStart = false;
-        var markerEnd = false;
+        var marker = false;
         var dashPattern = null;
         var hoverText = "";
     
@@ -608,22 +722,21 @@ GraphVis = function (renderer, options) {
             thickness, 
             color, 
             opacity, 
-            markerStart, 
-            markerEnd, 
+            marker,
             dashPattern, 
             hoverText,
             {});
     
-        return linkLine;
-        
+        return linkLine;    
     }
     //[cf]
 
     //[of]:    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
-    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
+    this.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration) {
         if (newVisNodes) visNodes = newVisNodes;
         if (newVisLinks) visLinks = newVisLinks;
         if (newVisClusters) visClusters = newVisClusters;
+        if (_.isUndefined(transitionDuration)) transitionDuration = 250;
     
         //[of]:    Create cluster hulls
         //[c]Create cluster hulls
@@ -641,15 +754,20 @@ GraphVis = function (renderer, options) {
         //[c]Create node circles and label texts
         
         var newNodeCircles = [];
+        var newLabelTexts = [];
         _.each(visNodes, function (visNode) {
             if (visNode.clusterId) {
                 var clusterHull = _.find(newClusterHulls, function (ch) { return ch.id === visNode.clusterId; });
                 
                 if (clusterHull) {
-                    var nodeCircle = nodeCircleFromVisNode(visNode);
+                    var nodeCombination = nodeCircleAndLabelTextFromVisNode(visNode);
+                    var nodeCircle = nodeCombination.nodeCircle;
                     newNodeCircles.push(nodeCircle);
                     clusterHull.visNodes.push(visNode);
                     clusterHull.nodeCircles.push(nodeCircle);
+        
+                    if (nodeCombination.labelText)
+                        newLabelTexts.push(nodeCombination.labelText);
                 } else {
                     if (!collapsedClusters.hasOwnProperty(visNode.clusterId))
                         throw "Node '" + visNode.id + "' refers to a cluster '" + visNode.clusterId + "' that wasn't defined";
@@ -657,13 +775,19 @@ GraphVis = function (renderer, options) {
                     collapsedClusters[visNode.clusterId].visNodes.push(visNode);
                 }
             } else {
-                newNodeCircles.push(nodeCircleFromVisNode(visNode));
+                var nodeCombination = nodeCircleAndLabelTextFromVisNode(visNode);
+                newNodeCircles.push(nodeCombination.nodeCircle);
+                if (nodeCombination.labelText)
+                    newLabelTexts.push(nodeCombination.labelText);
             }
         });
         
         _.each(collapsedClusters, function (collapsedCluster, clusterId) {
             var visCluster = _.find(visClusters, function (vc) { return vc.id === clusterId; });
-            newNodeCircles.push(nodeCircleFromCollapsedCluster(visCluster, collapsedCluster.visNodes, collapsedCluster.visLinks));
+            var nodeCombination = nodeCircleAndLabelTextFromCollapsedCluster(visCluster, collapsedCluster.visNodes, collapsedCluster.visLinks);
+            newNodeCircles.push(nodeCombination.nodeCircle);
+            if (nodeCombination.labelText)
+                newLabelTexts.push(nodeCombination.labelText);
         });
         //[cf]
         //[of]:    Create link lines
@@ -725,14 +849,13 @@ GraphVis = function (renderer, options) {
         
         //[cf]
     
-        var newLabelTexts = [];
         
         nodeCircles = newNodeCircles;
         linkLines = newLinkLines;
         labelTexts = newLabelTexts;
         clusterHulls = newClusterHulls;
     
-        renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+        renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration);
     };
     //[cf]
 
@@ -802,29 +925,18 @@ GraphVis = function (renderer, options) {
             .on("tick", function (e) {
                 _(nodeCircles).each(cluster(0.01));
                 _(nodeCircles).each(collide(0.5));
+                
+                // Move labels according to nodes.
+                _(labelTexts).each(function (lt) {
+                    var nodeCircle = _.find(nodeCircles, function (nc) { return nc.id === lt.id; });
+                    lt.x = nodeCircle.x;
+                    lt.y = nodeCircle.y;
+                });
+                
                 renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
             })
             .linkDistance(function(l, i) {
                 var n1 = l.source, n2 = l.target;
-                // larger distance for bigger groups:
-                // both between single nodes and _other_ groups (where size of own node group still counts),
-                // and between two group nodes.
-                //
-                // reduce distance for groups with very few outer links,
-                // again both in expanded and grouped form, i.e. between individual nodes of a group and
-                // nodes of another group or other group node or between two group nodes.
-                //
-                // The latter was done to keep the single-link groups ('blue', rose, ...) close.
-    
-    /*            return 30 + Math.min(
-                    20 * Math.min(
-                        (n1.size || (n1.clusterId != n2.clusterId ? n1.group_data.size : 0)),
-                        (n2.size || (n1.clusterId != n2.clusterId ? n2.group_data.size : 0))),
-                    -30 + 30 * Math.min(
-                        (n1.link_count || (n1.clusterId != n2.clusterId ? n1.group_data.link_count : 0)),
-                        (n2.link_count || (n1.clusterId != n2.clusterId ? n2.group_data.link_count : 0))),
-                    100);*/
-                
                 return n1.clusterId === n2.clusterId ? 1 : 2;
             })
             .linkStrength(function(l, i) { return 1; })
