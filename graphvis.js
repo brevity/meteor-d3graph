@@ -16,6 +16,12 @@ NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hove
     this.hoverText = hoverText;
     this.fixed = fixed;
     this.eventHandlers = eventHandlers;
+
+    // These are reserved for d3.force. Initialized here so the compiler constructor will know about them.
+    this.index = null;
+    this.px = null;
+    this.py = null;
+    this.weight = null;
 };
 
 LinkLine = function (id, data, source, target, thickness, color, opacity, marker, dashPattern, hoverText, eventHandlers) {
@@ -75,12 +81,16 @@ SvgRenderer = function (containerElement, options) {
     var width = containerElement.width();
     var height = containerElement.height();
 
+    this.containerElement = function () { return containerElement; };
+    this.width = function () { return width; };
+    this.height = function () { return height; };
+
     //[of]:    function makeHull(d, xScale, yScale) {
     function makeHull(d, xScale, yScale, radiusFactor) {
         var nodes = d.nodeCircles;
         var nodePoints = [];
     
-        _(nodes).each(function (n) {
+        _.each(nodes, function (n) {
             var offset = (n.radius || 5) * radiusFactor;
             var x = n.x || 0;
             var y = n.y || 0;
@@ -126,28 +136,9 @@ SvgRenderer = function (containerElement, options) {
     }
     //[cf]
 
-    this.containerElement = function () { return containerElement; };
-    this.width = function () { return width; };
-    this.height = function () { return height; };
-
-    //[of]:    function initialize() {
-    function initialize() {
-        svg = d3.select(containerElement[0]).append("svg")
-            .attr("width", width)
-            .attr("height", height);
-        
-        defs = svg.append("svg:defs");
-                    
-        layers = {};
-        _.each(layerIds, function (layerId) {
-            layers[layerId] = svg.append("svg:g")
-                .attr("id", layerId)
-                .attr("class", "layer");
-        });
-    }
-    //[cf]
     //[of]:    function attachEvents(selection, renderItems) {
     function attachEvents(selection, renderItems) {
+        var dragBehavior;
     
         // We want to know all the different types of events that exist in any of the elements. This cryptic oneliner does that:
         var allEvents = _.uniq(_.flatten(_.map(_.pluck(renderItems, "eventHandlers"), function (eh) { return _.keys(eh); })));
@@ -156,13 +147,31 @@ SvgRenderer = function (containerElement, options) {
             if (ce === "click" || ce === "dblclick")
                 return;
                 
-            selection.on(ce, function (d, i) { 
-                if (d.eventHandlers.hasOwnProperty(ce)) {
-                    d.eventHandlers[ce](d, i, d3.event); 
-                    d3.event.stopPropagation();
+            if (ce === "dragstart" || ce === "drag" || ce === "dragend") {
+                if (!dragBehavior) {
+                    dragBehavior = d3.behavior.drag()
+                        .origin(function() { 
+                            var t = d3.select(this);
+                            return {x: t.attr("x"), y: t.attr("y")};
+                        })
                 }
-            });
+                
+                dragBehavior.on(ce, function (d, i) {
+                    d.eventHandlers[ce](d, i, d3.event);
+                    //d3.event.stopPropagation();
+                });    
+            } else {
+                selection.on(ce, function (d, i) { 
+                    if (d.eventHandlers.hasOwnProperty(ce)) {
+                        d.eventHandlers[ce](d, i, d3.event); 
+                        d3.event.stopPropagation();
+                    }
+                });
+            }
         });
+    
+        if (dragBehavior)
+            selection.call(dragBehavior);
         
         var doubleClickDelay = 300;
         var singleClickTimer;
@@ -171,6 +180,7 @@ SvgRenderer = function (containerElement, options) {
         // Handle click and dblclick..
         selection.on("click", function (d, i) {
             if (d.eventHandlers.hasOwnProperty("click") && d.eventHandlers.hasOwnProperty("dblclick")) {
+                console.log("Both events");
                 if (singleClickTimer) {
                     d.eventHandlers.dblclick(d, i, d3.event);
                     clearTimeout(singleClickTimer);
@@ -184,6 +194,7 @@ SvgRenderer = function (containerElement, options) {
                 }
                 d3.event.stopPropagation();
             } else if (d.eventHandlers.hasOwnProperty("click")) {
+                console.log("only the click event");
                 d.eventHandlers.click(d, i, d3.event);
                 d3.event.stopPropagation();
             }
@@ -198,11 +209,11 @@ SvgRenderer = function (containerElement, options) {
     }
     //[cf]
     
-    // transitionDuration should only be used by tests/debugging
+    //[of]:    this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration) {
     this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration) {
         transitionDuration = transitionDuration === undefined ? 250 : transitionDuration;
         
-        //[of]:        Clusters
+        //[of]:    Clusters
         //[c]Clusters
         
         var cluster = layers.clusters.selectAll("path.cluster")
@@ -235,7 +246,7 @@ SvgRenderer = function (containerElement, options) {
         
         
         //[cf]
-        //[of]:        Link markers
+        //[of]:    Link markers
         //[c]Link markers
         
         var markerDefs = makeMarkerDefs(linkLines);
@@ -266,7 +277,7 @@ SvgRenderer = function (containerElement, options) {
             .remove();
         
         //[cf]
-        //[of]:        Links
+        //[of]:    Links
         //[c]Links
         
         var link = layers.links.selectAll("path.link")
@@ -298,7 +309,7 @@ SvgRenderer = function (containerElement, options) {
             .text(function (d) { return d.hoverText; });    
         
         //[cf]
-        //[of]:        Nodes
+        //[of]:    Nodes
         //[c]Nodes
         
         var node = layers.nodes.selectAll("circle.node")
@@ -333,7 +344,7 @@ SvgRenderer = function (containerElement, options) {
         node.select("title")
             .text(function (d) { return d.hoverText; });    
         //[cf]
-        //[of]:        Labels
+        //[of]:    Labels
         //[c]Labels
         
         var label = layers.labels.selectAll("g.label")
@@ -345,7 +356,9 @@ SvgRenderer = function (containerElement, options) {
             .attr("data-id", function (d) { return d.id; })
             .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; })
             .style("opacity", 1e-6)
-            .append("svg:text");
+            .append("svg:text")
+            .attr("x", function (d) { return d.offsetX * radiusFactor; })
+            .attr("y", function (d) { return d.offsetY * radiusFactor; });
         
         attachEvents(labelEnter, labelTexts);
         
@@ -371,9 +384,10 @@ SvgRenderer = function (containerElement, options) {
         
         previousRadiusFactor = radiusFactor;
     };
-
+    //[cf]
+    //[of]:    this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor) {
     this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor) {
-        //[of]:        Clusters
+        //[of]:    Clusters
         //[c]Clusters
         
         var cluster = layers.clusters.selectAll("path.cluster")
@@ -383,7 +397,7 @@ SvgRenderer = function (containerElement, options) {
             .attr("d", function (d) { return makeHull(d, xScale, yScale, radiusFactor); });
         
         //[cf]
-        //[of]:        Link markers
+        //[of]:    Link markers
         //[c]Link markers
         
         var markerDefs = makeMarkerDefs(linkLines);
@@ -414,7 +428,7 @@ SvgRenderer = function (containerElement, options) {
             .remove();
         
         //[cf]
-        //[of]:        Links
+        //[of]:    Links
         //[c]Links
         
         var link = layers.links.selectAll("path.link")
@@ -428,7 +442,7 @@ SvgRenderer = function (containerElement, options) {
                 .style("stroke-width", function (d) { return d.thickness * radiusFactor; });
         }
         //[cf]
-        //[of]:        Nodes
+        //[of]:    Nodes
         //[c]Nodes
         
         var node = layers.nodes.selectAll("circle.node")
@@ -444,7 +458,7 @@ SvgRenderer = function (containerElement, options) {
                 .style("stroke-width", function (d) { return 3 * radiusFactor; });
         }
         //[cf]
-        //[of]:        Labels
+        //[of]:    Labels
         //[c]Labels
         
         var label = layers.labels.selectAll("g.label")
@@ -454,13 +468,32 @@ SvgRenderer = function (containerElement, options) {
             .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; });
         
         label.select("text")
+            .attr("x", function (d) { return d.offsetX * radiusFactor; })
+            .attr("y", function (d) { return d.offsetY * radiusFactor; })
             .style("font-size", function (d) { return d.fontSize * radiusFactor; });
         
         //[cf]
         
         previousRadiusFactor = radiusFactor;
     };
+    //[cf]
     
+    //[of]:    function initialize() {
+    function initialize() {
+        svg = d3.select(containerElement[0]).append("svg")
+            .attr("width", width)
+            .attr("height", height);
+        
+        defs = svg.append("svg:defs");
+                    
+        layers = {};
+        _.each(layerIds, function (layerId) {
+            layers[layerId] = svg.append("svg:g")
+                .attr("id", layerId)
+                .attr("class", "layer");
+        });
+    }
+    //[cf]
     initialize();
 };
 //[cf]
@@ -513,33 +546,26 @@ GraphVis = function (renderer, options) {
         .scaleExtent([0.25, 4])
         .on("zoom", function () { 
             radiusFactor = zoomDensityScale(zoomBehavior.scale());
-            //renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
-            self.update(null, null, null, 0);
+            renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+            //self.update(null, null, null, 0);
 
             if (force) force.resume();
+            d3.event.sourceEvent.stopPropagation();
         });
 
     var visNodes, visLinks, visClusters;
+    
+    var phantomClusterHulls = [];
+    var phantomLinkLines = [];
+    var phantomNodeCircles = [];
+    var phantomLabelTexts = [];
+    
     var clusterHulls = [];
     var linkLines = [];
     var nodeCircles = [];
     var labelTexts = [];
     
     var force;
-
-    //[of]:    function initialize() {
-    function initialize() {
-        var container = d3.select(renderer.containerElement()[0]);
-        
-        container
-            .call(zoomBehavior)
-            .on("dblclick.zoom", null);
-    
-        if (options.onClick) {
-            container.on("click", options.onClick);
-        }
-    }
-    //[cf]
 
     //[of]:    function clusterHullFromVisCluster(visCluster) {
     function clusterHullFromVisCluster(visCluster) {
@@ -584,52 +610,46 @@ GraphVis = function (renderer, options) {
     //[cf]
     //[of]:    function nodeCircleAndLabelTextFromVisNode(visNode) {
     function nodeCircleAndLabelTextFromVisNode(visNode) {
-        var labelText;
-        var x, y, fixed;
+        var nodeCircle, labelText;
+    
+        var oldNodeCircle = _.find(nodeCircles, function (nodeCircle) { return nodeCircle.id === visNode.id; });
+        if (oldNodeCircle)
+            nodeCircle = oldNodeCircle;
+        else
+            nodeCircle = new NodeCircle(visNode.id, visNode, null, null, 10, "#888", "#333", 1, null, false, {});
     
         if (_.isNumber(visNode.fixedX)) {
-            x = visNode.fixedX;
-            y = visNode.fixedY;     // We assume that if there was a fixed X, there will also be a Y.
-            fixed = true;
-        } else {
-            var oldNodeCircle = _.find(nodeCircles, function (nodeCircle) { return nodeCircle.id === visNode.id; });
+            nodeCircle.x = visNode.fixedX;
+            nodeCircle.y = visNode.fixedY;     // We assume that if there was a fixed X, there will also be a fixed Y.
+            nodeCircle.fixed = true;
+        } else if (!_.isNumber(nodeCircle.x) || !_.isNumber(nodeCircle.y)) {
             var w = renderer.width();
             var h = renderer.height();
-            x = oldNodeCircle ? oldNodeCircle.x : (w / 2 + (Math.random() * (w / 2) - w / 4));
-            y = oldNodeCircle ? oldNodeCircle.y : (h / 2 + (Math.random() * (h / 2) - h / 4));
-            fixed = false;
+            nodeCircle.x = w / 2 + (Math.random() * (w / 2) - w / 4);
+            nodeCircle.y = h / 2 + (Math.random() * (h / 2) - h / 4);
         }
-    
-        var radius = 10;
-        var color = "#888";
-        var borderColor = "#333";
-        var opacity = 1;
-        var hoverText = "";
     
         if (options.describeVisNode) {
             var description = options.describeVisNode(visNode, radiusFactor);
             
-            if (description.radius) radius = description.radius;
-            if (description.color) color = description.color;
-            if (description.borderColor) borderColor = description.borderColor;
-            if (description.opacity) opacity = description.opacity;
-            if (description.hoverText) hoverText = description.hoverText;
+            if (_.isNumber(description.radius)) nodeCircle.radius = description.radius;
+            if (description.color) nodeCircle.color = description.color;
+            if (description.borderColor) nodeCircle.borderColor = description.borderColor;
+            if (_.isNumber(description.opacity)) nodeCircle.opacity = description.opacity;
+            if (description.hoverText) nodeCircle.hoverText = description.hoverText;
             
             if (description.label) {
-                labelText = labelTextFromLabelDescription(description.label, visNode.id, x, y, color, borderColor, opacity);
+                labelText = labelTextFromLabelDescription(description.label, nodeCircle.id, nodeCircle.x, nodeCircle.y, nodeCircle.color, nodeCircle.borderColor, nodeCircle.opacity);
             }
         }
         
-        eventHandlers = {};
-        
-        if (options.onNodeClick) { eventHandlers.click = options.onNodeClick; }
-        if (options.onNodeMouseOver) { eventHandlers.mouseover = options.onNodeMouseOver; }
-        if (options.onNodeMouseOut) { eventHandlers.mouseout = options.onNodeMouseOut; }
+        if (options.onNodeClick) { nodeCircle.eventHandlers.click = options.onNodeClick; }
+        if (options.onNodeMouseOver) { nodeCircle.eventHandlers.mouseover = options.onNodeMouseOver; }
+        if (options.onNodeMouseOut) { nodeCircle.eventHandlers.mouseout = options.onNodeMouseOut; }
+        if (options.onNodeDragStart) { nodeCircle.eventHandlers.dragstart = options.onNodeDragStart; }
     
-        eventHandlers.dblclick = function (d) { console.log("Doubleclick on ", d); };
+        nodeCircle.eventHandlers.dblclick = function (d) { console.log("Doubleclick on ", d); };
             
-        var nodeCircle = new NodeCircle(visNode.id, visNode, x, y, radius, color, borderColor, opacity, hoverText, fixed, eventHandlers);
-    
         return {
             nodeCircle: nodeCircle,
             labelText: labelText
@@ -679,7 +699,7 @@ GraphVis = function (renderer, options) {
         var opacity = 1;
         var marker = false;
         var dashPattern = null;
-        var hoverText = "";
+        var hoverText = null;
     
         if (options.describeVisLink) {
             var description = options.describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor);
@@ -849,11 +869,10 @@ GraphVis = function (renderer, options) {
         
         //[cf]
     
-        
-        nodeCircles = newNodeCircles;
-        linkLines = newLinkLines;
-        labelTexts = newLabelTexts;
-        clusterHulls = newClusterHulls;
+        nodeCircles = newNodeCircles.concat(phantomNodeCircles);
+        linkLines = newLinkLines.concat(phantomLinkLines);
+        labelTexts = newLabelTexts.concat(phantomLabelTexts);
+        clusterHulls = newClusterHulls.concat(phantomClusterHulls);
     
         renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration);
     };
@@ -915,6 +934,21 @@ GraphVis = function (renderer, options) {
         };
     }
     //[cf]
+    //[of]:    function tick(e) {
+    function tick(e) {
+        _(nodeCircles).each(cluster(0.01));
+        _(nodeCircles).each(collide(0.5));
+    
+        // Move labels according to nodes.
+        _(labelTexts).each(function (lt) {
+            var nodeCircle = _.find(nodeCircles, function (nc) { return nc.id === lt.id; });
+            lt.x = nodeCircle.x;
+            lt.y = nodeCircle.y;
+        });
+        
+        renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+    }
+    //[cf]
 
     //[of]:    this.startForce = function () {
     this.startForce = function () {
@@ -922,19 +956,7 @@ GraphVis = function (renderer, options) {
             .nodes(nodeCircles)
             .links(linkLines)
             .size([renderer.width(), renderer.height()])
-            .on("tick", function (e) {
-                _(nodeCircles).each(cluster(0.01));
-                _(nodeCircles).each(collide(0.5));
-                
-                // Move labels according to nodes.
-                _(labelTexts).each(function (lt) {
-                    var nodeCircle = _.find(nodeCircles, function (nc) { return nc.id === lt.id; });
-                    lt.x = nodeCircle.x;
-                    lt.y = nodeCircle.y;
-                });
-                
-                renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
-            })
+            .on("tick", tick)
             .linkDistance(function(l, i) {
                 var n1 = l.source, n2 = l.target;
                 return n1.clusterId === n2.clusterId ? 1 : 2;
@@ -952,6 +974,32 @@ GraphVis = function (renderer, options) {
     }
     //[cf]
 
+    this.addPhantomClusterHull = function (clusterHull) { phantomClusterHulls.push(clusterHull); }
+    this.addPhantomLinkLine = function (linkLine) { phantomLinkLines.push(linkLine); }
+    this.addPhantomNodeCircle = function (nodeCircle) { phantomNodeCircles.push(nodeCircle); }
+    this.addPhantomLabelTetx = function (labelText) { phantomLabelTexts.push(labelText); }
+    //[of]:    this.clearPhantomElements() {
+    this.clearPhantomElements = function () {
+        phantomClusterHulls = [];
+        phantomLinkLines = [];
+        phantomNodeCircles = [];
+        phantomLabelTexts = [];
+    }
+    //[cf]
+
+    //[of]:    function initialize() {
+    function initialize() {
+        var container = d3.select(renderer.containerElement()[0]);
+        
+        container
+            .call(zoomBehavior)
+            .on("dblclick.zoom", null);
+    
+        if (options.onClick) {
+            container.on("click", options.onClick);
+        }
+    }
+    //[cf]
     initialize();
 };
 
