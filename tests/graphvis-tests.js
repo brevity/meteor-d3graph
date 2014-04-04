@@ -127,8 +127,8 @@ Tinytest.addAsync(testLevel + "Node test", function (test, next) {
     }, 20);
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Node event handler test", function (test, next) {
-Tinytest.add(testLevel + "Node event handler test", function (test, next) {
+//[of]:Tinytest.add(testLevel + "Node event handler test", function (test) {
+Tinytest.add(testLevel + "Node event handler test", function (test) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -140,19 +140,16 @@ Tinytest.add(testLevel + "Node event handler test", function (test, next) {
     nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, eventHandlers);
     svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 1, 0);
     var node = $(containerElement.find("circle.node")[0]);
-
-    var evt = document.createEvent('MouseEvents');
-    evt.initEvent('click', true, false);
     
     // Execute
-    node[0].dispatchEvent(evt);
+    node.simulate("click");
     
     // Verify
     test.isTrue(success, "The click handler should have set the success flag to true");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Link, cluster and label event handlers test", function (test, next) {
-Tinytest.add(testLevel + "Link, cluster and label event handlers test", function (test, next) {
+//[of]:Tinytest.add(testLevel + "Link, cluster and label event handlers test", function (test) {
+Tinytest.add(testLevel + "Link, cluster and label event handlers test", function (test) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -172,18 +169,11 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     var link = $(containerElement.find("path.link")[0]);
     var cluster = $(containerElement.find("path.cluster")[0]);
     var label = $(containerElement.find("g.label")[0]);
-
-    var evt = document.createEvent('MouseEvents');
     
     // Execute
-    evt.initEvent('click', true, false);
-    link[0].dispatchEvent(evt);
-
-    evt.initEvent('click', true, false);
-    cluster[0].dispatchEvent(evt);
-
-    evt.initEvent('click', true, false);
-    label[0].dispatchEvent(evt);
+    link.simulate("click");
+    cluster.simulate("click");
+    label.simulate("click");
     
     // Verify
     test.equal(clickCount, 3, "We should have registered three clicks");
@@ -220,6 +210,48 @@ Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
     }, 20);
 });
 
+//[cf]
+//[of]:Tinytest.addAsync(testLevel + "Click/double-click test", function (test, next) {
+Tinytest.addAsync(testLevel + "Click/double-click test", function (test, next) {
+    // Setup
+    var containerElement = $("<div />");
+    var svgRenderer = new SvgRenderer(containerElement, {});
+    var idScale = d3.scale.linear();
+    
+    var events = { n1: [], n2: [], n3: [], n4: [] };
+    function storeEvent(eventName, element) { events[element].push(eventName); }
+    
+    var n1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, { click: storeEvent.bind(null, "click", "n1") });
+    var n2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 1, "", false, { dblclick: storeEvent.bind(null, "dblclick", "n2")});
+    var n3 = new NodeCircle("node3", null, 10, 10, 5, "#f00", "#800", 1, "", false, { click: storeEvent.bind(null, "click", "n3"), dblclick: storeEvent.bind(null, "dblclick", "n3") });
+    var n4 = new NodeCircle("node4", null, 10, 10, 5, "#f00", "#800", 1, "", false, { click: storeEvent.bind(null, "click", "n4"), dblclick: storeEvent.bind(null, "dblclick", "n4") });
+    svgRenderer.update([], [], [n1, n2, n3], [], idScale, idScale, 1, 0);
+    var n1e = $(containerElement.find("circle.node")[0]);
+    var n2e = $(containerElement.find("circle.node")[1]);
+    var n3e = $(containerElement.find("circle.node")[2]);
+    var n4e = $(containerElement.find("circle.node")[3]);
+    
+    console.log("==================================================");
+    
+    // Execute
+    n1e.simulate("click");
+    
+    n2e.simulate("dblclick");
+    
+    n3e.simulate("click");
+
+    n4e.simulate("click");
+    setTimeout(function () { n4e.simulate("click"); }, 50);
+    
+    // Verify
+    setTimeout(function () {
+        test.equal(events.n1, ["click"], "We should have registered a click event on n1");
+        test.equal(events.n2, ["dblclick"], "We should have registered a click event on n2");
+        test.equal(events.n3, ["click"], "We should have registered a click event on n3");
+        test.equal(events.n4, ["dblclick"], "The two click-events should have turned into one dblclick event on n4");
+        next();        
+    }, 600);
+});
 //[cf]
 
 
@@ -373,29 +405,14 @@ Tinytest.add(testLevel + "Zoom test", function (test) {
     var graphVis = new GraphVis(mockRenderer, {});
     graphVis.update([], [], []);
 
-    var e = document.createEvent("MouseEvents");
-    e.initMouseEvent(
-        "wheel", 
-        true,  // in boolean canBubbleArg,
-        true,  // in boolean cancelableArg,
-        window,// in views::AbstractView viewArg,
-        120,   // in long detailArg,
-        0,     // in long screenXArg,
-        0,     // in long screenYArg,
-        0,     // in long clientXArg,
-        0,     // in long clientYArg,
-        0,     // in boolean ctrlKeyArg,
-        0,     // in boolean altKeyArg,
-        0,     // in boolean shiftKeyArg,
-        0,     // in boolean metaKeyArg,
-        0,     // in unsigned short buttonArg,
-        null);   // in EventTarget relatedTargetArg
-  
+    var e = document.createEvent("WheelEvent");
+    e.initWebKitWheelEvent(0, 120);
+    
     // Execute
     mockRenderer.containerElement()[0].dispatchEvent(e);
     
     // Verify
-    test.ok(); // Not really, but I can't get the event to trigger a proper zoom....
+    test.isTrue(mockRenderer.radiusFactor > 0.8 && mockRenderer.radiusFactor < 1.0, "radiusFactor " + mockRenderer.radiusFactor + " should have increased a bit from the initial 0.8");
 });
 //[cf]
 //[of]:Tinytest.add(testLevel + "Collapse cluster simple test", function (test) {
@@ -560,7 +577,54 @@ Tinytest.add(testLevel + "Label test", function (test) {
     test.equal(lt.color, "#f00", "The LabelText should have have the color that we assigned in describeVisNode");
 });
 //[cf]
+//[of]:Tinytest.add(testLevel + "Phantom node test" function (test) {
+Tinytest.add(testLevel + "Phantom node test", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    var graphVis = new GraphVis(mockRenderer, {});
+    
+    var phantomNode = new NodeCircle("phantomNode1", null, 10, 10, 10, "#f00", "#800", 1, "", true, {});
+    graphVis.addPhantomNodeCircle(phantomNode);
+        
+    // Execute
+    graphVis.update([], [], []);
+    
+    // Verify
+    test.equal(mockRenderer.nodeCircles.length, 1, "There should be one NodeCircle representing our phantom node");
+    
+    var nc = mockRenderer.nodeCircles[0];
+    test.equal(nc, phantomNode, "the renderer should be fed our pahntom node");
+});
+//[cf]
+//[of]:Tinytest.add(testLevel + "Phantom link from real node to phantom node test" function (test) {
+Tinytest.add(testLevel + "Phantom link from real node to phantom node test", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    var graphVis = new GraphVis(mockRenderer, {});
+    
+    var node1 = new VisNode("node1", null, null, null, null);
 
+    // Update once to make graphVis create a nodeCircle for our VisNode
+    graphVis.update([node1], [], []);
+    var nodeCircleForNode1 = mockRenderer.nodeCircles[0];    
+
+    // Add the phantom node
+    var phantomNode = new NodeCircle("phantomNode1", null, 10, 10, 10, "#f00", "#800", 1, "", true, {});
+    graphVis.addPhantomNodeCircle(phantomNode);
+    
+    var phantomLink = new LinkLine("phantomLink1", null, nodeCircleForNode1, phantomNode, 1, "#f00", 1, false, null, "", {});
+    graphVis.addPhantomLinkLine(phantomLink);
+        
+    // Execute
+    graphVis.update([node1], [], []);
+    
+    // Verify
+    test.equal(mockRenderer.linkLines.length, 1, "There should be one LinkLinerepresenting our phantom link");
+    
+    var ll = mockRenderer.linkLines[0];
+    test.equal(ll, phantomLink, "the renderer should be fed our pahntom link");
+});
+//[cf]
 
 
 
