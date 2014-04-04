@@ -225,7 +225,8 @@
 
     this.addNode = function (settings) {
         var node = _nodelib.addNode(settings);
-        this.updateClusters();
+        if(settings.update)
+            this.updateClusters();
         return node;
     };
 
@@ -237,7 +238,8 @@
 
     this.addLink = function (options) {
         var link = _linklib.addLink(options);
-        this.updateClusters();
+        if(options.update)
+            this.updateClusters();
         return link;
     };
 
