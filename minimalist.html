@@ -1,0 +1,66 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>GraphViz test</title>
+<style>
+
+svg {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+#graph-vis-container {
+  margin: auto;
+  width: 960px;
+  height: 600px;
+  background-color: #333;
+}
+
+</style>
+<body>
+    <div id="graph-vis-container"></div>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+<script src="graphvis.js"></script>
+
+<script>
+    $(function () {
+//        var node = new VisNode("myNode");
+//        graphVis.update([node], [], []);
+
+        var people = [
+            { name: "John", vehicle: "car", age: 45 },
+            { name: "Lisa", vehicle: "car", age: 37 },
+            { name: "Alice", vehicle: "bike", age: 39 }
+        ];
+
+        var vehicleColors = { car: "red", bike: "blue" };
+        function describeVisNode(visNode) {
+            var color = vehicleColors[visNode.data.vehicle];
+            var radius = visNode.data.age / 2;
+            
+            return {
+                color: color,
+                radius: radius
+            };
+        }
+
+        var svgRenderer = new SvgRenderer($("#graph-vis-container"), {});
+        var graphVis = new GraphVis(svgRenderer, { describeVisNode: describeVisNode });
+
+        var visNodes = _.map(people, function (person) { return new VisNode(person.name, person);  });
+        
+        graphVis.update(visNodes, [], []);
+        graphVis.startForce();
+        
+
+    });
+</script>
+</body>
