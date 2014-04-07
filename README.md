@@ -143,7 +143,7 @@ The <code>options</code> paramter is a plain JS object. If it is not supplied, o
 
 The two last properties allow you to describe your graph to more detail. However, this will trigger an entire <code>update()</code> call every time the user zooms/pans or when the force ticks. If your graph is large, this will perform poorly.
 
-The default value for <code>zoomDensityScale</code> is <code>d3.scale.linear().domain([0.25, 4]).range([0.5, 2])</code>. It can be any function that takes a zoom factor and returns a radius factor. This is the factor that will be applied to the "density" of the visual elements, such as radii, font size, link thickness and so on. If you set <code>zoomDensityScale</code> to <code>function () { return 1; }</code>, the density will remain constant and zooming will only cause elements to move closer to each other or further apart.
+The default value for <code>zoomDensityScale</code> is <code>d3.scale.linear().domain([0.25, 4]).range([0.5, 2])</code>. This means that when the user zooms out to 0.25, radii will be 0.5 times the value from the description. You can supply any function that takes a zoom factor and returns a radius factor. This is the factor that will be applied to the "density" of the visual elements, such as radii, font size, link thickness and so on. If you set <code>zoomDensityScale</code> to <code>function () { return 1; }</code>, the density will remain constant and zooming will only cause elements to move closer to each other or further apart.
 
 ####Event Handling
 
@@ -158,13 +158,28 @@ You can supply the following event handlers in <code>options</code>:
  * <code>onNodeDragStart</code> - event handler for when the user starts dragging a node
  * <code>onNodeDrag</code> - event handler called when the user is dragging a node
  * <code>onNodeDragEnd</code> - event handler for when the user drops a node somewhere
+ * <code>onClusterNodeClick</code> - event handler for clicks on cluster placeholder-nodes
+ * <code>onClusterNodeDoubleClick</code> - event handler for doubleclick on placeholder-node (*default: expand cluster*)
+ * <code>onClusterNodeMouseOver</code> - event handler for hovering placeholder-nodes
+ * <code>onClusterNodeMouseOut</code> - event handler for leaving placeholder-nodes
+ * <code>onClusterNodeDragStart</code> - event handler for when the user starts dragging a placeholder-node
+ * <code>onClusterNodeDrag</code> - event handler for dragging placeholder-nodes
+ * <code>onClusterNodeDragEnd</code> - event handler for when the user drops a placeholder-node
  * <code>onLinkClick</code> - event handler for link clicks
  * <code>onLinkDoubleClick</code> - event handler for link double-clicks
  * <code>onLinkMouseOver</code> - event handler for hovering over a link
  * <code>onLinkMouseOut</code> - event handler for when the mouse leaves a link
+ * <code>onClusterClick</code> - event handler for when the user clicks on a cluster hull
+ * <code>onClusterDoubleClick</code> - event handler for cluster hull doubleclick (*default: collapse cluster*)
+ * <code>onClusterMouseOver</code> - event handler for hovering a cluster hull
+ * <code>onClusterMouseOut</code> - event handler for leaving a cluster hull
 
 
- * <code>defaultNodeDescription</code> - default description to use for nodes. See the section below on describing visual elements
+####Visual element describing
+
+The <code>options</code> object allows the following properties for describing visual elements (See the section below on describing visual elements):
+
+ * <code>defaultNodeDescription</code> - default description to use for nodes
  * <code>describeVisNode</code> - describer function to use for nodes
  * <code>defaultLinkDescription</code> - default description for links
  * <code>describeVisLink</code> - describer function for links
