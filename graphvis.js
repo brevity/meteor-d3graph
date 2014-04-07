@@ -526,6 +526,92 @@ VisCluster = function (id, data, isCollapsed) {
 
 //[cf]
 
+//[of]:defaultGraphVisOptions = {
+defaultNodeDescription = {
+    radius: 10,
+    color: "#888",
+    borderColor: "#333",
+    opacity: 1,
+    hoverText: null,
+    label: null
+};
+
+defaultLinkDecsription = {
+    thickness: 1,
+    color: "#333",
+    opacity: 1,
+    marker: false,
+    dashPattern: null,
+    hoverText: null
+};
+
+// Collapsed clusters become node circles
+defaultCollapsedClusterDescription = {
+    radius: 20,
+    color: "#a88",
+    borderColor: "#633",
+    opacity: 1,
+    hoverText: null,
+    label: null
+};
+
+// Expanded clusters become cluster hulls
+defaultExpandedClusterDescription = {
+    color: "#a88",
+    borderColor: null,
+    opacity: 0.2,
+    hoverText: null
+};
+
+defaultGraphVisOptions = {
+    // General settings
+    enableZoom: true,
+    enablePan: true,
+    enableForce: true,
+    zoomExtent: [0.25, 4],
+    zoomDensityScale = d3.scale.linear().domain([0.25, 4]).range([0.5, 2]),
+    updateOnlyPositionsOnZoom: true,        // If false, a complete update() will take place during zoom. More flexible but slower.
+    updateOnlyPositionsOnTick: true,        // Likewise, for force ticks.
+
+
+    // Event handling
+    onClick: null,
+    onNodeClick: null,
+    onNodeDoubleClick: null,
+    onNodeMouseOver: null,
+    onNodeMouseOut: null,
+    onNodeDragStart: null,
+    onNodeDrag: null,
+    onNodeDragEnd: null
+    onClusterNodeClick: null,
+    onClusterNodeDoubleClick: expandCluster,
+    onClusterNodeMouseOver: null,
+    onClusterNodeMouseOut: null,
+    onClusterNodeDragStart: null,
+    onClusterNodeDrag: null,
+    onClusterNodeDragEnd: null,
+    onLinkClick: null,
+    onLinkDoubleClick: null,
+    onLinkMouseOver: null,
+    onLinkMouseOut: null,
+    onClusterClick: null,
+    onClusterDoubleClick: collapseCluster,
+    onClusterMouseOver: null,
+    onClusterMouseOut: null,
+    
+    
+    // Visual element describing
+    defaultNodeDescription: defaultNodeDescription,
+    describeVisNode: null,
+    defaultLinkDescription: defaultLinkDescription,
+    describeVisLink: defaultLinkDescriber,
+    defaultCollapsedClusterDescription: defaultCollapsedClusterDescription,
+    describeCollapsedCluster: defaultCollapsedClusterDescriber,
+    defaultExpandedClusterDescription: defaultExpandedClusterDescription,
+    describeExpandedCluster: defaultExpandedClusterDescriber,
+};
+//[cf]
+
 GraphVis = function (renderer, options) {
     var self = this;
 
