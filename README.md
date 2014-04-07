@@ -104,6 +104,15 @@ So the complete code to visualize our people structure would be like this:
 
 This should show us three dots on the screen now, two red ones and a blue one. They should have slightly different radii.
 
+
+Nodes, Links and clusters
+-------------------------
+This library visualizes three types of data: nodes, links and clusters. The nodes are visualizes as circles. A link indicates that two nodes are connected, and is represented by a line between the two circles.
+
+Finally, there is a concept of clusters. Clusters are another way of indicating a relationship between a group of nodes. A node can belong to zero or one clusters. Clusters can be visualized as *collapsed* or *expanded*. Collapsed clusters are represented by a single circle. Expanded clusters show circles for all the member nodes, as well as a convex hull surrounding them to indicate the relationship.
+
+
+
 Force
 -----
 It's all well and good with static nodes, but you will probably want to apply the nice D3 force. Doing that is rather simple. You call <code>GraphVis.startForce()</code>. This will start the physics simulation. It will cool down and eventually stop but you can keep it going using <code>GraphVis.resumeForce()</code>.
@@ -118,12 +127,10 @@ In order to make the visualization dynamic, you can attach event handlers. The d
 Reference
 =========
 
-
-GraphVis
---------
-
-
+GraphVis constructor
+--------------------
 <code>GraphVis(renderer, options)</code>
+
 This is the constructor for the <code>GraphVis</code> class. The <code>renderer</code> parameter must be an instance of a renderer like <code>SvgRenderer</code>.
 
 
@@ -132,7 +139,6 @@ The <code>options</code> paramter is a plain JS object. If it is not supplied, o
 
 
 ####General Settings
-
  * <code>enableZoom</code> - Enable zooming (*default: true*)
  * <code>enablePan</code> - Enable panning (*default: true*)
  * <code>enableForce</code> - Enable physics simulation (Note: you still need to call <code>startForce()</code> to start it) (*default: true*)
@@ -146,7 +152,6 @@ The two last properties allow you to describe your graph to more detail. However
 The default value for <code>zoomDensityScale</code> is <code>d3.scale.linear().domain([0.25, 4]).range([0.5, 2])</code>. This means that when the user zooms out to 0.25, radii will be 0.5 times the value from the description. You can supply any function that takes a zoom factor and returns a radius factor. This is the factor that will be applied to the "density" of the visual elements, such as radii, font size, link thickness and so on. If you set <code>zoomDensityScale</code> to <code>function () { return 1; }</code>, the density will remain constant and zooming will only cause elements to move closer to each other or further apart.
 
 ####Event Handling
-
 You can supply the following event handlers in <code>options</code>:
 
 
@@ -176,7 +181,6 @@ You can supply the following event handlers in <code>options</code>:
 
 
 ####Visual element describing
-
 The <code>options</code> object allows the following properties for describing visual elements (See the section below on describing visual elements):
 
  * <code>defaultNodeDescription</code> - default description to use for nodes
@@ -187,6 +191,96 @@ The <code>options</code> object allows the following properties for describing v
  * <code>describeVisLink</code> - describer function for links
 
 
+GraphVis.update
+---------------
+<code>GraphVis.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration)</code>
 
+The update function causes the entire graph to be updated.
+
+If arguments are supplied for <code>newVisNodes</code>, <code>newVisLinks</code> and <code>newVisClusters</code>, these will be used. Otherwise, the ones supplied from the last <code>update()</code> call will be reused.
+Specifically, <code>update</code> will turn <code>VisNode</code>'s into <code>NodeCircle</code>'s, <code>VisLink</code>'s into <code>LinkLine</code>'s and <code>VisCluster</code>'s into <code>ClusterHull</code>'s. However, clusters that have <code>isCollapsed</code> set to true will not create a cluster hull but rather a placeholder-node that represents the given cluster.
+
+
+VisNode constructor
+-------------------
+<code>VisNode = function (id, data, clusterId)</code>
+
+This constructs a <code>VisNode</code>. They are what you feed to <code>GraphVis.update()</code>
+
+The <code>id</code> parameter must be set to a unique identifier. If the model that you are representing nodes with has an ID already, it is recommended that you use this.
+
+The <code>data</code> parameter can contain any object you want to attach to your node.
+
+The <code>clusterId</code> parameter can be null or it can be the ID of a cluster. If set, a corresponding <code>VisCluster</code> with the same ID must exist and be supplied to <code>GraphVis.update</code>.
+
+
+VisLink constructor
+-------------------
+<code>VisLink = funciotn (sourceNodeId, targetNodeId, data)</code>
+
+This constructs a <code>VisLink</code>.
+
+The <code>sourceNodeId</code> and <code>targetNodeId</code> must be ID's of <code>VisNode</code>'s supplied in the same update() call.
+
+The <code>data</code> parameter is optional. Use it to attach custom data to your link.
+
+
+VisCluster constructor
+----------------------
+<code>VisCluster = function (id, data, isCollapsed)</code>
+
+This constructs a <code>VisCluster</code>.
+
+The <code>id</code> parameter must be a unique identifier for the cluster. Any <code>VisNode</code> that belongs to a cluster must set its <code>clusterId</code> property to something that matches one of these.
+
+The <code>data</code> property is optional. You can use it to attach additional data to the cluster.
+
+The <code>isCollapsed</code> property defines whether the cluster is collapsed or not. When collapsed, the a single <code>NodeCircle</code> will be drawn in stead of all of the nodes inside the cluster. If it's not collapsed, all the nodes belonging to the cluster will be represented individually and a convex hull ("cluster hull") will be drawn around them to indicate their relationship.
+
+
+SvgRenderer constructor
+-----------------------
+<code>SvgRenderer(containerElement, options)</code>
+
+This is the constructor for the <code>SvgRenderer</code> class. The <code>containerElement</code> parameter should be a jQuery object of the DOM element where the graph should be rendered.
+
+At the time of writing, <code>SvgRenderer</code> has no options, so that parameter is simply reserved.
+
+
+SvgRenderer.update
+------------------
+<code>SvgRenderer.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration</code>
+
+This function updates the DOM with visual elements. It uses D3 to map data to the DOM. The data supplied should be directly mappable. The only transformation applied is the scales and <code>radiusFactor</code>. Coordinates are transformed with the scales. Radii, link widths, font sizes and the like are multiplied with the radiusFactor before applied.
+
+<code>update</code> will add, update and remove elements in order to make the DOM match the data supplied. If <code>transitionDuration</code> is specified, the transition will take that number of milliseconds. Otherwise, it will default to 250ms.
+
+
+SvgRenderer.updatePositions
+---------------------------
+<code>SvgRenderer.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor)</code>
+
+This function is an optimized version of <code>update</code> that doesn't add or remove elements, and only updates certain properties like positions and sizes. This function is typically used when zooming or in a force tick function.
+
+
+SvgRenderer.containerElement
+----------------------------
+<code>SvgRenderer.containerElement = function ()</code>
+
+This function returns the jQuery object passed in the constructor.
+
+
+SvgRenderer.width
+-----------------
+<code>SvgRenderer.width = function ()</code>
+
+Gets the width of the container element.
+
+
+SvgRenderer.height
+-----------------
+<code>SvgRenderer.height = function ()</code>
+
+Gets the height of the container element.
 
 
