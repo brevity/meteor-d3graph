@@ -503,12 +503,10 @@ SvgRenderer = function (containerElement, options) {
 //[of]:Classes fed to GraphVis
 //[c]Classes fed to GraphVis
 
-VisNode = function (id, data, clusterId, fixedX, fixedY) {
+VisNode = function (id, data, clusterId) {
     this.id = id;
     this.data = data;
     this.clusterId = clusterId;
-    this.fixedX = fixedX;
-    this.fixedY = fixedY;
 };
 
 VisLink = function (data, sourceNodeId, targetNodeId) {
@@ -536,7 +534,7 @@ defaultNodeDescription = {
     label: null
 };
 
-defaultLinkDecsription = {
+defaultLinkDescription = {
     thickness: 1,
     color: "#333",
     opacity: 1,
@@ -563,13 +561,30 @@ defaultExpandedClusterDescription = {
     hoverText: null
 };
 
+// This one simply returns interpolated values between the two nodes.
+// If a node is hovered, links that point to it will have markers.
+defaultLinkDescriber = function (visLink, sourceNodeCircle, targetNodeCircle, radiusFactor) {
+    return {
+        thickness: (sourceNodeCircle.radius + targetNodeCircle.radius) / 10,
+        color: d3.interpolateRgb(sourceNodeCircle.color, targetNodeCircle.color)(0.5),
+        opacity: (sourceNodeCircle.opacity + targetNodeCircle.opacity) / 2,
+        marker: false
+    };
+};
+
+defaultCollapsedClusterDescriber = function () {
+};
+
+defaultExpandedClusterDescriber = function () {
+};
+
 defaultGraphVisOptions = {
     // General settings
     enableZoom: true,
     enablePan: true,
     enableForce: true,
     zoomExtent: [0.25, 4],
-    zoomDensityScale = d3.scale.linear().domain([0.25, 4]).range([0.5, 2]),
+    zoomDensityScale: d3.scale.linear().domain([0.25, 4]).range([0.5, 2]),
     updateOnlyPositionsOnZoom: true,        // If false, a complete update() will take place during zoom. More flexible but slower.
     updateOnlyPositionsOnTick: true,        // Likewise, for force ticks.
 
@@ -582,9 +597,9 @@ defaultGraphVisOptions = {
     onNodeMouseOut: null,
     onNodeDragStart: null,
     onNodeDrag: null,
-    onNodeDragEnd: null
+    onNodeDragEnd: null,
     onClusterNodeClick: null,
-    onClusterNodeDoubleClick: expandCluster,
+    onClusterNodeDoubleClick: null,     // If unset, will default to "expand cluster".
     onClusterNodeMouseOver: null,
     onClusterNodeMouseOut: null,
     onClusterNodeDragStart: null,
@@ -595,7 +610,7 @@ defaultGraphVisOptions = {
     onLinkMouseOver: null,
     onLinkMouseOut: null,
     onClusterClick: null,
-    onClusterDoubleClick: collapseCluster,
+    onClusterDoubleClick: null, // If unset, will default to "collapse cluster".
     onClusterMouseOver: null,
     onClusterMouseOut: null,
     
@@ -614,6 +629,7 @@ defaultGraphVisOptions = {
 
 GraphVis = function (renderer, options) {
     var self = this;
+    options = $.extend(true, {}, defaultGraphVisOptions, options);
 
     var xScale = d3.scale.linear()
         .domain([0, renderer.width()])
@@ -632,10 +648,15 @@ GraphVis = function (renderer, options) {
         .scaleExtent([0.25, 4])
         .on("zoom", function () { 
             radiusFactor = zoomDensityScale(zoomBehavior.scale());
-            renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
-            //self.update(null, null, null, 0);
+            
+            if (options.updateOnlyPositionsOnTick)
+                renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+            else
+                self.update(null, null, null, 0);
 
-            if (force) force.resume();
+            if (options.enableForce && force)
+                force.resume();
+            
             d3.event.sourceEvent.stopPropagation();
         });
 
@@ -837,7 +858,7 @@ GraphVis = function (renderer, options) {
     }
     //[cf]
 
-    //[of]:    this.update = function (newVisNodes, newVisLinks, newVisClusters) {
+    //[of]:    this.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration) {
     this.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration) {
         if (newVisNodes) visNodes = newVisNodes;
         if (newVisLinks) visLinks = newVisLinks;
