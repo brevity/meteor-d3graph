@@ -725,11 +725,7 @@ GraphVis = function (renderer, options) {
         else
             nodeCircle = new NodeCircle(visNode.id, visNode, null, null, 10, "#888", "#333", 1, null, false, {});
     
-        if (_.isNumber(visNode.fixedX)) {
-            nodeCircle.x = visNode.fixedX;
-            nodeCircle.y = visNode.fixedY;     // We assume that if there was a fixed X, there will also be a fixed Y.
-            nodeCircle.fixed = true;
-        } else if (!_.isNumber(nodeCircle.x) || !_.isNumber(nodeCircle.y)) {
+        if (!_.isNumber(nodeCircle.x) || !_.isNumber(nodeCircle.y)) {
             var w = renderer.width();
             var h = renderer.height();
             nodeCircle.x = w / 2 + (Math.random() * (w / 2) - w / 4);
@@ -738,6 +734,10 @@ GraphVis = function (renderer, options) {
     
         if (options.describeVisNode) {
             var description = options.describeVisNode(visNode, radiusFactor);
+            
+            if (_.isNumber(description.x)) nodeCircle.x = description.x;
+            if (_.isNumber(description.y)) nodeCircle.y = description.y;
+            if (!_.isUndefined(description.fixed)) nodeCircle.fixed = description.fixed;
             
             if (_.isNumber(description.radius)) nodeCircle.radius = description.radius;
             if (description.color) nodeCircle.color = description.color;
