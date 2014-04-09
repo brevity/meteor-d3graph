@@ -509,10 +509,10 @@ VisNode = function (id, data, clusterId) {
     this.clusterId = clusterId;
 };
 
-VisLink = function (data, sourceNodeId, targetNodeId) {
-    this.data = data;
+VisLink = function (sourceNodeId, targetNodeId, data) {
     this.sourceNodeId = sourceNodeId;
     this.targetNodeId = targetNodeId;
+    this.data = data;
 };
 
 VisCluster = function (id, data, isCollapsed) {

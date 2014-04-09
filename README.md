@@ -39,7 +39,7 @@ Now, the visualization is boring at this stage. We haven't told our GraphVis any
 
 	var node1 = new VisNode("node1");
 	var node2 = new VisNode("node2");
-	var link = new VisLink(null, "node1", "node2");
+	var link = new VisLink("node1", "node2");
 	graphVis.update([node1, node2], [link], []);
 
 This should create a graph consisting of two nodes connected by a link. Still bland looking, but at least it's a small graph. You might be wondering about the <code>null</code> argument for the link. That is the <code>data</code> property of the VisLink, which in this case is not used. It is however essential when we get into changing visual properties of our visualisation such as colors.

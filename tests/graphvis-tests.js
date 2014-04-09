@@ -382,9 +382,9 @@ Tinytest.add(testLevel + "Link test", function (test) {
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
     
-    var node1 = new VisNode("node1", null, null, null, null);
-    var node2 = new VisNode("node2", null, null, null, null);
-    var link = new VisLink(null, "node1", "node2");
+    var node1 = new VisNode("node1");
+    var node2 = new VisNode("node2");
+    var link = new VisLink("node1", "node2");
     
     // Execute
     graphVis.update([node1, node2], [link], []);
@@ -441,14 +441,14 @@ Tinytest.add(testLevel + "Collapse cluster test with links", function (test) {
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
     
-    var node1 = new VisNode("node1", null, "cluster1", null, null);
-    var node2 = new VisNode("node2", null, "cluster1", null, null);
-    var node3 = new VisNode("node3", null, "cluster2", null, null);
+    var node1 = new VisNode("node1", null, "cluster1");
+    var node2 = new VisNode("node2", null, "cluster1");
+    var node3 = new VisNode("node3", null, "cluster2");
     var cluster1 = new VisCluster("cluster1", null, false);
     var cluster2 = new VisCluster("cluster2", null, false);
-    var link1 = new VisLink(null, "node1", "node2");
-    var link2 = new VisLink(null, "node1", "node3");
-    var link3 = new VisLink(null, "node2", "node3");
+    var link1 = new VisLink("node1", "node2");
+    var link2 = new VisLink("node1", "node3");
+    var link3 = new VisLink("node2", "node3");
     
     graphVis.update([node1, node2, node3], [link1, link2, link3], [cluster1, cluster2]);
 
@@ -531,9 +531,9 @@ Tinytest.add(testLevel + "Link describer function simple test", function (test) 
         }
     }
     var graphVis = new GraphVis(mockRenderer, { describeVisLink: describeVisLink });
-    var node1 = new VisNode("node1", null, null, null, null);
-    var node2 = new VisNode("node2", null, null, null, null);
-    var link1 = new VisLink(null, "node1", "node2");
+    var node1 = new VisNode("node1");
+    var node2 = new VisNode("node2");
+    var link1 = new VisLink("node1", "node2");
     
     // Execute
     graphVis.update([node1, node2], [link1], []);
