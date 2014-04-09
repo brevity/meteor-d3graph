@@ -298,9 +298,9 @@ Tinytest.add(testLevel + "Re-update test", function (test) {
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
     
-    var node1 = new VisNode("node1", null, null, null, null);
-    var node2 = new VisNode("node2", null, null, null, null);
-    var node3 = new VisNode("node3", null, null, 10, 20);
+    var node1 = new VisNode("node1");
+    var node2 = new VisNode("node2");
+    var node3 = new VisNode("node3");
     graphVis.update([node1, node3], [], []);
 
     node3.fixedX = 100;
@@ -310,15 +310,7 @@ Tinytest.add(testLevel + "Re-update test", function (test) {
     graphVis.update([node2, node3], [], []);
     
     // Verify
-    test.equal(mockRenderer.nodeCircles.length, 2, "There should be be two circles as we currently have two nodes");
-    
-    var nc0 = mockRenderer.nodeCircles[0];
-    test.equal(nc0.id, "node2", "The first NodeCircle should now be 'node2'");
-
-    var nc1 = mockRenderer.nodeCircles[1];
-    test.equal(nc1.id, "node3", "The second NodeCircle should still be 'node3'");
-    test.equal(nc1.x, 100, "node3 should be fixed to 100, 200");
-    test.equal(nc1.y, 200, "node3 should be fixed to 100, 200");
+    testArrayProperty(test, mockRenderer.nodeCircles, "id", ["node2", "node3"]);
 });
 //[cf]
 //[of]:Tinytest.add(testLevel + "Collapsed cluster test", function (test) {

@@ -5,7 +5,8 @@ Package.describe({
 var libFiles = [
         'tipsy/tipsy.js',
         'd3treelayout.js',
-        'graphvis.js'
+        'graphvis.js',
+        'autoRadiusScale.js'
     ];
 
 Package.on_use(function(api, where) {
@@ -23,6 +24,8 @@ Package.on_use(function(api, where) {
         api.export('LinkLine');
         api.export('ClusterHull');
         api.export('LabelText');
+        
+        api.export("autoRadiusScale");
     }
 });
 
