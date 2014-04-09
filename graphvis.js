@@ -583,6 +583,8 @@ defaultGraphVisOptions = {
     enableZoom: true,
     enablePan: true,
     enableForce: true,
+    enableCollisionDetection: true,
+    enableClusterForce: false,
     zoomExtent: [0.25, 4],
     zoomDensityScale: d3.scale.linear().domain([0.25, 4]).range([0.5, 2]),
     updateOnlyPositionsOnZoom: true,        // If false, a complete update() will take place during zoom. More flexible but slower.
@@ -1043,8 +1045,11 @@ GraphVis = function (renderer, options) {
     //[cf]
     //[of]:    function tick(e) {
     function tick(e) {
-        _(nodeCircles).each(cluster(0.01));
-        _(nodeCircles).each(collide(0.5));
+        if (options.enableClusterForce)
+            _(nodeCircles).each(cluster(0.01));
+        
+        if (options.enableCollisionDetection)
+            _(nodeCircles).each(collide(0.5));
     
         // Move labels according to nodes.
         _(labelTexts).each(function (lt) {

@@ -142,6 +142,8 @@ The <code>options</code> paramter is a plain JS object. If it is not supplied, o
  * <code>enableZoom</code> - Enable zooming (*default: true*)
  * <code>enablePan</code> - Enable panning (*default: true*)
  * <code>enableForce</code> - Enable physics simulation (Note: you still need to call <code>startForce()</code> to start it) (*default: true*)
+ * <code>enableCollisionDetection</code> - Prevent nodes from colliding when force is applied (*default: true*)
+ * <code>enableClusterForce</code> - Add gravity to clusters in an attempt to keep clusters separate (*default: false*)
  * <code>zoomExtent</code> - Allowed zoom range. (*default: [0.25, 4]*)
  * <code>zoomDensityScale</code> - transformation applied to determine radii, font sizes etc.
  * <code>updateOnlyPositionsOnZoom</code> - set to false if you want your describer functions called when zooming (*default: true*)
