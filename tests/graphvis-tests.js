@@ -66,7 +66,7 @@ Tinytest.addAsync(testLevel + "Cluster hull test", function (test, next) {
         var cluster = $(clusters[0]);
         test.equal(cluster.attr("data-id"), "cluster1", "Cluster should have the ID we gave it");
         test.isTrue(cluster.attr("d").indexOf("M5,5") === 0, "Cluster path should begin with a move to 5,5");
-        test.equal(cluster.css("fill"), "#ff8888", "Node should have the border color we gave it");
+        test.equal(cluster.css("fill"), "rgb(255, 136, 136)", "Node should have the border color we gave it (but specified as rgb because of the transition)");
         next();
     }, 20);
 });
@@ -94,7 +94,7 @@ Tinytest.addAsync(testLevel + "Link test", function (test, next) {
     setTimeout(function () {
         var link = $(links[0]);
         test.equal(link.attr("data-id"), "node1->node2", "Link should have the ID we gave it");
-        test.equal(link.css("stroke"), "#ff0000", "Link should have the color we gave it");
+        test.equal(link.css("stroke"), "rgb(255, 0, 0)", "Link should have the color we gave it");
         test.equal(link.attr("d"), "M 10 10 L 20 20", "Link path should be a straight line from node1 to node2");
         next();
     }, 20);
@@ -122,7 +122,7 @@ Tinytest.addAsync(testLevel + "Node test", function (test, next) {
         var node = $(nodes[0]);
         test.equal(node.attr("data-id"), "node1", "Node should have the ID we gave it");
         test.equal(node.attr("cx"), "10", "Node should have the radius we gave it");
-        test.equal(node.css("stroke"), "#880000", "Node should have the border color we gave it");
+        test.equal(node.css("stroke"), "rgb(136, 0, 0)", "Node should have the border color we gave it");
         next();
     }, 20);
 });
@@ -204,7 +204,7 @@ Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
         test.equal(markers.length, 1, "There should be exactly one marker defined");
         var marker = $(markers[0]);
         test.equal(marker.attr("id"), "marker-2-ff0000", "Marker should have an id that expresses size and color");
-        test.equal(link.css("stroke"), "#ff0000", "Link should have the color we gave it");
+        test.equal(link.css("stroke"), "rgb(255, 0, 0)", "Link should have the color we gave it");
         test.equal(link.attr("d"), "M 10 10 L 20 20", "Link path should be a straight line from node1 to node2");
         next();
     }, 20);
@@ -519,7 +519,7 @@ Tinytest.add(testLevel + "Link describer function simple test", function (test) 
         
         return {
             color: "#f00",
-            thickness: 2
+            width: 2
         }
     }
     var graphVis = new GraphVis(mockRenderer, { describeVisLink: describeVisLink });
@@ -538,7 +538,7 @@ Tinytest.add(testLevel + "Link describer function simple test", function (test) 
     test.equal(sourceNodeCircleFromDescription.id, "node1", "describeVisLink should be fed with a sourceNodeCircle representing node1");
     test.equal(targetNodeCircleFromDescription.id, "node2", "describeVisLink should be fed with a targetNodeCircle representing node2");
     test.equal(ll.color, "#f00", "The LinkLine should have have the color that we assigned in describeVisLink");
-    test.equal(ll.thickness, 2, "The LinkLine should have have the thickness that we assigned in describeVisLink");
+    test.equal(ll.width, 2, "The LinkLine should have have the thickness that we assigned in describeVisLink");
 });
 //[cf]
 //[of]:Tinytest.add(testLevel + "Label test", function (test) {

@@ -24,12 +24,12 @@ NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hove
     this.weight = null;
 };
 
-LinkLine = function (id, data, source, target, thickness, color, opacity, marker, dashPattern, hoverText, eventHandlers) {
+LinkLine = function (id, data, source, target, width, color, opacity, marker, dashPattern, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
     this.source = source;   // These should be NodeCircle instances
     this.target = target;       // - " -
-    this.thickness = thickness;
+    this.width = width;
     this.color = color;
     this.opacity = opacity;
     this.markerEnd = marker;
@@ -125,7 +125,7 @@ SvgRenderer = function (containerElement, options) {
         
         _.each(linkLines, function (ll) {
             if (ll.markerStart || ll.markerEnd) {
-                var size = ll.thickness.toFixed(0);
+                var size = ll.width.toFixed(0);
                 var color = d3.rgb(ll.color).toString(); // This is necessary to convert "red" into "ff0000" etc.
                 var sizeColorCombo = size + "-" + color.substr(1);
                 sizeColorCombos[sizeColorCombo] = { id: sizeColorCombo, size: size, color: color };
@@ -299,10 +299,10 @@ SvgRenderer = function (containerElement, options) {
         
         link.transition().duration(transitionDuration)
             .attr("d", function (d) { return makeLinkPath(d, xScale, yScale); })
-            .attr("marker-start", function (d) { return d.markerStart ? ("url(#marker-" + d.thickness.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
-            .attr("marker-end", function (d) { return d.markerEnd ? ("url(#marker-" + d.thickness.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
+            .attr("marker-start", function (d) { return d.markerStart ? ("url(#marker-" + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
+            .attr("marker-end", function (d) { return d.markerEnd ? ("url(#marker-" + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
             .style("stroke-opacity", function (d) { return d.opacity; })
-            .style("stroke-width", function (d) { return d.thickness * radiusFactor; })
+            .style("stroke-width", function (d) { return d.width * radiusFactor; })
             .style("stroke", function (d) { return d.color; });
             
         link.select("title")
@@ -439,7 +439,7 @@ SvgRenderer = function (containerElement, options) {
         
         if (radiusFactor !== previousRadiusFactor) {
             link
-                .style("stroke-width", function (d) { return d.thickness * radiusFactor; });
+                .style("stroke-width", function (d) { return d.width * radiusFactor; });
         }
         //[cf]
         //[of]:    Nodes
@@ -535,7 +535,7 @@ defaultNodeDescription = {
 };
 
 defaultLinkDescription = {
-    thickness: 1,
+    width: 1,
     color: "#333",
     opacity: 1,
     marker: false,
@@ -565,7 +565,7 @@ defaultExpandedClusterDescription = {
 // If a node is hovered, links that point to it will have markers.
 defaultLinkDescriber = function (visLink, sourceNodeCircle, targetNodeCircle, radiusFactor) {
     return {
-        thickness: (sourceNodeCircle.radius + targetNodeCircle.radius) / 10,
+        width: (sourceNodeCircle.radius + targetNodeCircle.radius) / 10,
         color: d3.interpolateRgb(sourceNodeCircle.color, targetNodeCircle.color)(0.5),
         opacity: (sourceNodeCircle.opacity + targetNodeCircle.opacity) / 2,
         marker: false
@@ -803,7 +803,7 @@ GraphVis = function (renderer, options) {
     //[cf]
     //[of]:    function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {
     function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {
-        var thickness = 1;
+        var width = 1;
         var color = "#300";
         var opacity = 1;
         var marker = false;
@@ -813,7 +813,7 @@ GraphVis = function (renderer, options) {
         if (options.describeVisLink) {
             var description = options.describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor);
     
-            if (description.thickness) thickness = description.thickness;
+            if (description.width) width = description.width;
             if (description.color) color = description.color;
             if (description.opacity) opacity = description.opacity;
             if (description.hoverText) hoverText = description.hoverText;
@@ -824,7 +824,7 @@ GraphVis = function (renderer, options) {
             visLink, 
             sourceNodeCircle, 
             targetNodeCircle, 
-            thickness, 
+            width, 
             color, 
             opacity, 
             marker,
@@ -837,7 +837,7 @@ GraphVis = function (renderer, options) {
     //[cf]
     //[of]:    function linkLineFromClusterLinks(nodePairs) {
     function  linkLineFromClusterLink(sourceNodeCircle, targetNodeCircle, visLinks) {
-        var thickness = 2;
+        var width = 2;
         var color = "#0f0";
         var opacity = 1;
         var marker = false;
@@ -848,7 +848,7 @@ GraphVis = function (renderer, options) {
             visLinks, 
             sourceNodeCircle,
             targetNodeCircle,
-            thickness, 
+            width, 
             color, 
             opacity, 
             marker,
