@@ -52,7 +52,7 @@ Tinytest.addAsync(testLevel + "Cluster hull test", function (test, next) {
     
     var visCluster = new VisCluster("cluster1", null, false);
     var visNode = new VisNode("node1", null, null, null);
-    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text", false, {}); 
+    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "Node hover-text", false, {}); 
     var clusterHull = new ClusterHull("cluster1", null, visCluster, [visNode], [], [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
     
     // Execute
@@ -79,8 +79,8 @@ Tinytest.addAsync(testLevel + "Link test", function (test, next) {
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, {}); 
-    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 1, "", false, {}); 
+    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {}); 
+    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 3, 1, "", false, {}); 
     
     var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, 0, null, "Hover text", {});
     
@@ -109,7 +109,7 @@ Tinytest.addAsync(testLevel + "Node test", function (test, next) {
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "Node hover-text", false, {}); 
+    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "Node hover-text", false, {}); 
     
     // Execute
     svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 1, 0);
@@ -137,7 +137,7 @@ Tinytest.add(testLevel + "Node event handler test", function (test) {
     var success = false;
     var nodeCircle;
     var eventHandlers = { "click" : function (d) { success = d === nodeCircle; } };
-    nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, eventHandlers);
+    nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, eventHandlers);
     svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 1, 0);
     var node = $(containerElement.find("circle.node")[0]);
     
@@ -158,8 +158,8 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     var clickCount = 0;
     var eventHandlers = { "click" : function (d) { clickCount += 1; } };
     
-    var nc1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, {});
-    var nc2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 1, "", false, {});
+    var nc1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {});
+    var nc2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {});
     
     var linkLine = new LinkLine("link1", null, nc1, nc2, 1, "#f00", 1, false, 0, null, "", eventHandlers);
     var clusterHull = new ClusterHull("cluster1", null, null, [], [], [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
@@ -186,8 +186,8 @@ Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, {}); 
-    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 1, "", false, {}); 
+    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {}); 
+    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 3, 1, "", false, {}); 
     
     var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, 0, null, "Hover text", {});
     
@@ -221,10 +221,10 @@ Tinytest.addAsync(testLevel + "Click/double-click test", function (test, next) {
     var events = { n1: [], n2: [], n3: [], n4: [] };
     function storeEvent(eventName, element) { events[element].push(eventName); }
     
-    var n1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, { click: storeEvent.bind(null, "click", "n1") });
-    var n2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 1, "", false, { dblclick: storeEvent.bind(null, "dblclick", "n2")});
-    var n3 = new NodeCircle("node3", null, 10, 10, 5, "#f00", "#800", 1, "", false, { click: storeEvent.bind(null, "click", "n3"), dblclick: storeEvent.bind(null, "dblclick", "n3") });
-    var n4 = new NodeCircle("node4", null, 10, 10, 5, "#f00", "#800", 1, "", false, { click: storeEvent.bind(null, "click", "n4"), dblclick: storeEvent.bind(null, "dblclick", "n4") });
+    var n1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, { click: storeEvent.bind(null, "click", "n1") });
+    var n2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, { dblclick: storeEvent.bind(null, "dblclick", "n2")});
+    var n3 = new NodeCircle("node3", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, { click: storeEvent.bind(null, "click", "n3"), dblclick: storeEvent.bind(null, "dblclick", "n3") });
+    var n4 = new NodeCircle("node4", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, { click: storeEvent.bind(null, "click", "n4"), dblclick: storeEvent.bind(null, "dblclick", "n4") });
     svgRenderer.update([], [], [n1, n2, n3], [], idScale, idScale, 1, 0);
     var n1e = $(containerElement.find("circle.node")[0]);
     var n2e = $(containerElement.find("circle.node")[1]);
@@ -263,8 +263,8 @@ Tinytest.addAsync(testLevel + "Curved links test", function (test, next) {
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 1, "", false, {}); 
-    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 1, "", false, {}); 
+    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {}); 
+    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 3, 1, "", false, {}); 
     
     var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, 0.5, null, "Hover text", {});
     
@@ -605,7 +605,7 @@ Tinytest.add(testLevel + "Phantom node test", function (test) {
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
     
-    var phantomNode = new NodeCircle("phantomNode1", null, 10, 10, 10, "#f00", "#800", 1, "", true, {});
+    var phantomNode = new NodeCircle("phantomNode1", null, 10, 10, 10, "#f00", "#800", 3, 1, "", true, {});
     graphVis.addPhantomNodeCircle(phantomNode);
         
     // Execute
@@ -631,7 +631,7 @@ Tinytest.add(testLevel + "Phantom link from real node to phantom node test", fun
     var nodeCircleForNode1 = mockRenderer.nodeCircles[0];    
 
     // Add the phantom node
-    var phantomNode = new NodeCircle("phantomNode1", null, 10, 10, 10, "#f00", "#800", 1, "", true, {});
+    var phantomNode = new NodeCircle("phantomNode1", null, 10, 10, 10, "#f00", "#800", 3, 1, "", true, {});
     graphVis.addPhantomNodeCircle(phantomNode);
     
     var phantomLink = new LinkLine("phantomLink1", null, nodeCircleForNode1, phantomNode, 1, "#f00", 1, false, 0, null, "", {});

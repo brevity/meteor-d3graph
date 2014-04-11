@@ -4,7 +4,7 @@
 //[of]:Classes fed to renderer
 //[c]Classes fed to renderer
 
-NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hoverText, fixed, eventHandlers) {
+NodeCircle = function (id, data, x, y, radius, color, borderColor, borderWidth, opacity, hoverText, fixed, eventHandlers) {
     this.id = id;
     this.data = data;
     this.x = x; // Note: x and y are NOT scaled to screen space because they are manipulated by d3.force
@@ -12,6 +12,7 @@ NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hove
     this.radius = radius;
     this.color = color;
     this.borderColor = borderColor;
+    this.borderWidth = borderWidth;
     this.opacity = opacity;
     this.hoverText = hoverText;
     this.fixed = fixed;
@@ -116,15 +117,29 @@ SvgRenderer = function (containerElement, options) {
         var ty = yScale(d.target.y);
     
         if (d.curvature === 0) {
-            return "M " + sx + " " + sy + " L " + tx + " " + ty;
-        } else {
-            //[of]:        Correct curve
-            //[c]Correct curve
+            var sr = (d.source.radius + d.source.borderWidth) * radiusFactor;
+            var tr = (d.target.radius + d.target.borderWidth) * radiusFactor;
+    
+            var a = tx - sx, b = ty - sy;
+            var centerDist = Math.sqrt(a*a + b*b);
             
+            var normalizedVectorX = (tx - sx) / centerDist;
+            var normalizedVectorY = (ty - sy) / centerDist;
+            
+            var rsx = sx + sr * normalizedVectorX;
+            var rsy = sy + sr * normalizedVectorY;
+            var rtx = tx - tr * normalizedVectorX;
+            var rty = ty - tr * normalizedVectorY;
+            
+            return "M " + rsx + " " + rsy + " L " + rtx + " " + rty;
+        } else {
+            //[of]:        Original curve
+            //[c]Original curve
+            /*
             var dir = true;
             
-            var sr = (d.source.radius + 3) * radiusFactor,
-                tr = (d.target.radius + 3) * radiusFactor,
+            var sr = (d.source.radius + d.source.borderWidth) * radiusFactor,
+                tr = (d.target.radius + d.target.borderWidth) * radiusFactor,
                 dx = tx - sx,
                 dy = ty - sy,
                 dr = Math.sqrt(dx * dx + dy * dy) || 0.001,
@@ -196,14 +211,30 @@ SvgRenderer = function (containerElement, options) {
             }
             
             return "M " + sx + " " + sy + " A " + dr + " " + dr + " 0 0 " + (xt > xs ? "1" : "0") + " " + xt + " " + yt;
+            */
             //[cf]
             //[of]:        Simple curve
             //[c]Simple curve
-            var dx = tx - sx,
-                dy = ty - sy,
-                dr = Math.sqrt(dx * dx + dy * dy);
             
-            return "M" + sx + "," + sy + "A" + dr + "," + dr + " 0 0,1 " + tx + "," + ty;        
+            var sr = (d.source.radius + d.source.borderWidth) * radiusFactor;
+            var tr = (d.target.radius + d.target.borderWidth) * radiusFactor;
+            
+            var a = tx - sx, b = ty - sy;
+            var centerDist = Math.sqrt(a*a + b*b);
+            
+            var normalizedVectorX = (tx - sx) / centerDist;
+            var normalizedVectorY = (ty - sy) / centerDist;
+            
+            var rsx = sx + sr * normalizedVectorX;
+            var rsy = sy + sr * normalizedVectorY;
+            var rtx = tx - tr * normalizedVectorX;
+            var rty = ty - tr * normalizedVectorY;
+            
+            var dx = rtx - rsx,
+                dy = rty - rsy,
+                dr = Math.sqrt(dx * dx + dy * dy) * 2;
+            
+            return "M" + rsx + "," + rsy + "A" + dr + "," + dr + " 0 0,1 " + rtx + "," + rty;        
             //[cf]
         }
     }
@@ -428,7 +459,7 @@ SvgRenderer = function (containerElement, options) {
             .attr("cx", function (d) { return xScale(d.x); })
             .attr("cy", function (d) { return yScale(d.y); })
             .attr("r", function (d) { return d.radius * radiusFactor; })
-            .style("stroke-width", function (d) { return 3 * radiusFactor; })
+            .style("stroke-width", function (d) { return d.borderWidth * radiusFactor; })
             .style("opacity", function (d) { return d.opacity; })
             .style("fill", function (d) { return d.color; })
             .style("stroke", function (d) { return d.borderColor; });
@@ -548,7 +579,7 @@ SvgRenderer = function (containerElement, options) {
         if (radiusFactor !== previousRadiusFactor) {
             node
                 .attr("r", function (d) { return d.radius * radiusFactor; })
-                .style("stroke-width", function (d) { return 3 * radiusFactor; });
+                .style("stroke-width", function (d) { return d.borderWidth * radiusFactor; });
         }
         //[cf]
         //[of]:    Labels
@@ -818,7 +849,7 @@ GraphVis = function (renderer, options) {
         if (oldNodeCircle)
             nodeCircle = oldNodeCircle;
         else
-            nodeCircle = new NodeCircle(visNode.id, visNode, null, null, 10, "#888", "#333", 1, null, false, {});
+            nodeCircle = new NodeCircle(visNode.id, visNode, null, null, 10, "#888", "#333", 3, 1, null, false, {});
     
         if (!_.isNumber(nodeCircle.x) || !_.isNumber(nodeCircle.y)) {
             var w = renderer.width();
@@ -863,6 +894,7 @@ GraphVis = function (renderer, options) {
         var radius = 20;
         var color = "#333";
         var borderColor = "#000";
+        var borderWidth = 3;
         var opacity = 1;
         var hoverText = "";
     
@@ -885,7 +917,7 @@ GraphVis = function (renderer, options) {
             }
         };
         
-        var nodeCircle = new NodeCircle(id, data, x, y, radius, color, borderColor, opacity, hoverText, false, eventHandlers);
+        var nodeCircle = new NodeCircle(id, data, x, y, radius, color, borderColor, borderWidth, opacity, hoverText, false, eventHandlers);
         
         return {
             nodeCircle: nodeCircle,
