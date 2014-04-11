@@ -7,7 +7,8 @@ var libFiles = [
         'intersect/intersect.js',
         'd3treelayout.js',
         'graphvis.js',
-        'autoRadiusScale.js'
+        'autoRadiusScale.js',
+        'gradientScale.js'
     ];
 
 Package.on_use(function(api, where) {
@@ -27,6 +28,7 @@ Package.on_use(function(api, where) {
         api.export('LabelText');
         
         api.export("autoRadiusScale");
+        api.export("gradientScale");
     }
 });
 
