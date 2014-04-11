@@ -24,7 +24,7 @@ NodeCircle = function (id, data, x, y, radius, color, borderColor, opacity, hove
     this.weight = null;
 };
 
-LinkLine = function (id, data, source, target, width, color, opacity, marker, dashPattern, hoverText, eventHandlers) {
+LinkLine = function (id, data, source, target, width, color, opacity, marker, curvature, dashPattern, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
     this.source = source;   // These should be NodeCircle instances
@@ -33,6 +33,7 @@ LinkLine = function (id, data, source, target, width, color, opacity, marker, da
     this.color = color;
     this.opacity = opacity;
     this.markerEnd = marker;
+    this.curvature = curvature;     // Radians to curve at the center. Negative for counter-clockwise curvature. 0 for a straight line.
     this.dashPattern = dashPattern;
     this.hoverText = hoverText;
     this.eventHandlers = eventHandlers;
@@ -107,14 +108,104 @@ SvgRenderer = function (containerElement, options) {
         return clusterCurve(d3.geom.hull(nodePoints));
     }
     //[cf]
-    //[of]:    function makeLinkPath(d, xScale, yScale) {
-    function makeLinkPath(d, xScale, yScale) {
+    //[of]:    function makeLinkPath(d, xScale, yScale, radiusFactor) {
+    function makeLinkPath(d, xScale, yScale, radiusFactor) {
         var sx = xScale(d.source.x);
         var sy = yScale(d.source.y);
         var tx = xScale(d.target.x);
         var ty = yScale(d.target.y);
-        
-        return "M " + sx + " " + sy + " L " + tx + " " + ty;
+    
+        if (d.curvature === 0) {
+            return "M " + sx + " " + sy + " L " + tx + " " + ty;
+        } else {
+            //[of]:        Correct curve
+            //[c]Correct curve
+            
+            var dir = true;
+            
+            var sr = (d.source.radius + 3) * radiusFactor,
+                tr = (d.target.radius + 3) * radiusFactor,
+                dx = tx - sx,
+                dy = ty - sy,
+                dr = Math.sqrt(dx * dx + dy * dy) || 0.001,
+                xs = dir ? sx + dx * (sr / dr) : sx,
+                ys = dir ? sy + dy * (sr / dr) : sy,
+                xt = dir ? tx - dx * (tr / dr) : tx,
+                yt = dir ? ty - dy * (tr / dr) : ty;
+            
+            if(xs == xt && ys == yt)  // loop it
+                return "M " + xs + " " + ys + " A 10 10 0 1 " + (xt > xs ? "1" : "0") + " " + (xt + 1) + " " + (yt + 1);
+            
+            // All of this logic comes from:
+            // - http://www.kevlindev.com/gui/math/intersection/index.htm#Anchor-Introductio-4219 - for intersection of ellipse and circle
+            // - http://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes - for calculating the center of the ellipse
+            
+            // calculate center of ellipse
+            var x1p = (sx - tx) / 2;
+            var y1p = (sy - ty) / 2;
+            
+            var sq = Math.sqrt(
+                ((dr * dr * dr * dr) - (dr * dr * y1p * y1p) - (dr * dr * x1p * x1p)) /
+                ((dr * dr * y1p * y1p) + (dr * dr * x1p * x1p)));
+            
+            if(xt < xs)
+                sq *= -1;
+            
+            var cxp = sq * y1p;
+            var cyp = sq * (-1 * x1p);
+            var cx = cxp + (sx + tx) / 2;
+            var cy = cyp + (sy + ty) / 2;
+            
+            var result = Intersection.intersectCircleEllipse({ x: tx, y: ty}, tr, { x: cx, y: cy }, dr, dr);
+            if(result.points.length) {
+                // find the correct point (closest to source) and use that as our target
+                var min = 1000000;
+                var pt;
+                $.each(result.points, function(i, point) {
+                    var dist = Math.sqrt(Math.pow(point.x - sx, 2) + Math.pow(point.y - sy, 2));
+                    if(dist < min) {
+                        min = dist;
+                        pt = point;
+                    }
+                });
+            
+                if(pt) {
+                    xt = pt.x;
+                    yt = pt.y;
+                }
+            }
+            
+            result = Intersection.intersectCircleEllipse({ x: sx, y: sy}, sr, { x: cx, y: cy }, dr, dr);
+            
+            if(result.points.length) {
+                // find the correct point (closest to source) and use that as our target
+                var min = 1000000;
+                var pt;
+                $.each(result.points, function(i, point) {
+                    var dist = Math.sqrt(Math.pow(point.x - tx, 2) + Math.pow(point.y - ty, 2));
+                    if(dist < min) {
+                        min = dist;
+                        pt = point;
+                    }
+                });
+                
+                if(pt) {
+                    sx = pt.x;
+                    sy = pt.y;
+                }
+            }
+            
+            return "M " + sx + " " + sy + " A " + dr + " " + dr + " 0 0 " + (xt > xs ? "1" : "0") + " " + xt + " " + yt;
+            //[cf]
+            //[of]:        Simple curve
+            //[c]Simple curve
+            var dx = tx - sx,
+                dy = ty - sy,
+                dr = Math.sqrt(dx * dx + dy * dy);
+            
+            return "M" + sx + "," + sy + "A" + dr + "," + dr + " 0 0,1 " + tx + "," + ty;        
+            //[cf]
+        }
     }
     
     
@@ -288,6 +379,7 @@ SvgRenderer = function (containerElement, options) {
             .attr("data-id", function (d) { return d.id; })
             .style("stroke-opacity", 1e-6)
             .style("stroke-width", 1e-6)
+            .style("fill", "none")
             .append("svg:title");
         
         attachEvents(linkEnter, linkLines);
@@ -298,7 +390,7 @@ SvgRenderer = function (containerElement, options) {
             .remove();
         
         link.transition().duration(transitionDuration)
-            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale); })
+            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale, radiusFactor); })
             .attr("marker-start", function (d) { return d.markerStart ? ("url(#marker-" + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
             .attr("marker-end", function (d) { return d.markerEnd ? ("url(#marker-" + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
             .style("stroke-opacity", function (d) { return d.opacity; })
@@ -358,7 +450,8 @@ SvgRenderer = function (containerElement, options) {
             .style("opacity", 1e-6)
             .append("svg:text")
             .attr("x", function (d) { return d.offsetX * radiusFactor; })
-            .attr("y", function (d) { return d.offsetY * radiusFactor; });
+            .attr("y", function (d) { return d.offsetY * radiusFactor; })
+            .style("font-size", function (d) { return d.fontSize * radiusFactor; })
         
         attachEvents(labelEnter, labelTexts);
         
@@ -369,15 +462,15 @@ SvgRenderer = function (containerElement, options) {
         label.transition().duration(transitionDuration)
             .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; })
             .style("opacity", function (d) { return d.opacity; })
+            .style("font-size", function (d) { return d.fontSize * radiusFactor; })
         
         label.select("text")
             .text(function (d) { return d.text; })
             .transition().duration(transitionDuration)
             .attr("x", function (d) { return d.offsetX * radiusFactor; })
             .attr("y", function (d) { return d.offsetY * radiusFactor; })
-            .style("font-size", function (d) { return d.fontSize * radiusFactor; })
+            .style("fill", function (d) { return d.color; });
         //    .style("stroke-width", function (d) { return 0.5 * radiusFactor; })
-            .style("fill", function (d) { return d.color; })
         //    .style("stroke", function (d) { return d.borderColor; });
         
         //[cf]
@@ -435,7 +528,7 @@ SvgRenderer = function (containerElement, options) {
             .data(linkLines, function (d) { return d.id; });
         
         link
-            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale); })
+            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale, radiusFactor); })
         
         if (radiusFactor !== previousRadiusFactor) {
             link
@@ -539,6 +632,7 @@ defaultLinkDescription = {
     color: "#333",
     opacity: 1,
     marker: false,
+    curvature: 0,
     dashPattern: null,
     hoverText: null
 };
@@ -568,7 +662,6 @@ defaultLinkDescriber = function (visLink, sourceNodeCircle, targetNodeCircle, ra
         width: (sourceNodeCircle.radius + targetNodeCircle.radius) / 10,
         color: d3.interpolateRgb(sourceNodeCircle.color, targetNodeCircle.color)(0.5),
         opacity: (sourceNodeCircle.opacity + targetNodeCircle.opacity) / 2,
-        marker: false
     };
 };
 
@@ -651,7 +744,7 @@ GraphVis = function (renderer, options) {
         .on("zoom", function () { 
             radiusFactor = zoomDensityScale(zoomBehavior.scale());
             
-            if (options.updateOnlyPositionsOnTick)
+            if (options.updateOnlyPositionsOnZoom)
                 renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
             else
                 self.update(null, null, null, 0);
@@ -753,12 +846,11 @@ GraphVis = function (renderer, options) {
         }
         
         if (options.onNodeClick) { nodeCircle.eventHandlers.click = options.onNodeClick; }
+        if (options.onNodeDoubleClick) { nodeCircle.eventHandlers.dblclick = options.onNodeDoubleClick; }
         if (options.onNodeMouseOver) { nodeCircle.eventHandlers.mouseover = options.onNodeMouseOver; }
         if (options.onNodeMouseOut) { nodeCircle.eventHandlers.mouseout = options.onNodeMouseOut; }
         if (options.onNodeDragStart) { nodeCircle.eventHandlers.dragstart = options.onNodeDragStart; }
     
-        nodeCircle.eventHandlers.dblclick = function (d) { console.log("Doubleclick on ", d); };
-            
         return {
             nodeCircle: nodeCircle,
             labelText: labelText
@@ -803,33 +895,24 @@ GraphVis = function (renderer, options) {
     //[cf]
     //[of]:    function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {
     function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {
-        var width = 1;
-        var color = "#300";
-        var opacity = 1;
-        var marker = false;
-        var dashPattern = null;
-        var hoverText = null;
+        var description = _.clone(options.defaultLinkDescription);
     
         if (options.describeVisLink) {
-            var description = options.describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor);
-    
-            if (description.width) width = description.width;
-            if (description.color) color = description.color;
-            if (description.opacity) opacity = description.opacity;
-            if (description.hoverText) hoverText = description.hoverText;
-            if (description.marker) marker = description.marker;
+            var d = options.describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor);
+            description = _.extend(description, d);
         }
     
         var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
             visLink, 
             sourceNodeCircle, 
             targetNodeCircle, 
-            width, 
-            color, 
-            opacity, 
-            marker,
-            dashPattern, 
-            hoverText,
+            description.width, 
+            description.color, 
+            description.opacity, 
+            description.marker,
+            description.curvature,
+            description.dashPattern, 
+            description.hoverText,
             {});
     
         return linkLine;
@@ -842,6 +925,7 @@ GraphVis = function (renderer, options) {
         var opacity = 1;
         var marker = false;
         var dashPattern = null;
+        var curvature = 0;
         var hoverText = "";
     
         var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
@@ -852,6 +936,7 @@ GraphVis = function (renderer, options) {
             color, 
             opacity, 
             marker,
+            curvature,
             dashPattern, 
             hoverText,
             {});

@@ -4,6 +4,7 @@ Package.describe({
 
 var libFiles = [
         'tipsy/tipsy.js',
+        'intersect/intersect.js',
         'd3treelayout.js',
         'graphvis.js',
         'autoRadiusScale.js'
