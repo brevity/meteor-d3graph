@@ -40,14 +40,15 @@ LinkLine = function (id, data, source, target, width, color, opacity, marker, cu
     this.eventHandlers = eventHandlers;
 };
 
-LabelText = function (id, data, text, x, y, offsetX, offsetY, fontSize, color, borderColor, opacity, hoverText, eventHandlers) {
+LabelText = function (id, data, text, x, y, offsetX, offsetY, anchor, fontSize, color, borderColor, opacity, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
     this.text = text;
     this.x = x;
     this.y = y;
-    this.offsetX = offsetX;
+    this.offsetX = offsetX;    // When text-anchor is "end" or "auto" that computes to end, this will be negated.
     this.offsetY = offsetY;
+    this.anchor = anchor;   // text-anchor attribute (start | middle | end), but can also be set to "auto".
     this.fontSize = fontSize;
     this.color = color;
     this.borderColor = borderColor;
@@ -135,7 +136,7 @@ SvgRenderer = function (containerElement, options) {
         } else {
             //[of]:        Original curve
             //[c]Original curve
-            /*
+            
             var dir = true;
             
             var sr = (d.source.radius + d.source.borderWidth) * radiusFactor,
@@ -211,11 +212,11 @@ SvgRenderer = function (containerElement, options) {
             }
             
             return "M " + sx + " " + sy + " A " + dr + " " + dr + " 0 0 " + (xt > xs ? "1" : "0") + " " + xt + " " + yt;
-            */
             //[cf]
             //[of]:        Simple curve
             //[c]Simple curve
             
+            /*
             var sr = (d.source.radius + d.source.borderWidth) * radiusFactor;
             var tr = (d.target.radius + d.target.borderWidth) * radiusFactor;
             
@@ -235,6 +236,7 @@ SvgRenderer = function (containerElement, options) {
                 dr = Math.sqrt(dx * dx + dy * dy) * 2;
             
             return "M" + rsx + "," + rsy + "A" + dr + "," + dr + " 0 0,1 " + rtx + "," + rty;        
+            */
             //[cf]
         }
     }
@@ -255,6 +257,15 @@ SvgRenderer = function (containerElement, options) {
         });
         
         return _.map(sizeColorCombos, function (sizeColorCombo, id) { return sizeColorCombo; });
+    }
+    //[cf]
+    //[of]:    function getTextAnchor(labelText, xScale) {
+    function getTextAnchor(labelText, xScale) {
+        if (labelText.anchor === "auto") {
+            return xScale(labelText.x) < width / 2 ? "start" : "end";
+        } else {
+            return labelText.anchor;
+        }
     }
     //[cf]
 
@@ -498,7 +509,8 @@ SvgRenderer = function (containerElement, options) {
         label.select("text")
             .text(function (d) { return d.text; })
             .transition().duration(transitionDuration)
-            .attr("x", function (d) { return d.offsetX * radiusFactor; })
+            .attr("text-anchor", function (d) { return getTextAnchor(d, xScale); })
+            .attr("x", function (d) { return (getTextAnchor(d, xScale) === "end" ? -d.offsetX : d.offsetX) * radiusFactor; })
             .attr("y", function (d) { return d.offsetY * radiusFactor; })
             .style("fill", function (d) { return d.color; });
         //    .style("stroke-width", function (d) { return 0.5 * radiusFactor; })
@@ -592,7 +604,8 @@ SvgRenderer = function (containerElement, options) {
             .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; });
         
         label.select("text")
-            .attr("x", function (d) { return d.offsetX * radiusFactor; })
+            .attr("text-anchor", function (d) { return getTextAnchor(d, xScale); })
+            .attr("x", function (d) { return (getTextAnchor(d, xScale) === "end" ? -d.offsetX : d.offsetX) * radiusFactor; })
             .attr("y", function (d) { return d.offsetY * radiusFactor; })
             .style("font-size", function (d) { return d.fontSize * radiusFactor; });
         
@@ -830,6 +843,7 @@ GraphVis = function (renderer, options) {
     function labelTextFromLabelDescription(label, id, x, y, nodeCircleColor, nodeCircleBorderColor, nodeCircleOpacity) {
         var offsetX = _.isUndefined(label.offsetX) ? 0 : label.offsetX;
         var offsetY = _.isUndefined(label.offsetY) ? 0 : label.offsetY;
+        var anchor = label.anchor || "start";
         var fontSize = label.fontSize || 14;
         var color = label.color || nodeCircleColor;
         var borderColor = label.borderColor || nodeCircleBorderColor;
@@ -838,7 +852,7 @@ GraphVis = function (renderer, options) {
         
         var eventHandlers = {};
     
-        return new LabelText(id, null, label.text, x, y, offsetX, offsetY, fontSize, color, borderColor, opacity, hoverText, eventHandlers);
+        return new LabelText(id, null, label.text, x, y, offsetX, offsetY, anchor, fontSize, color, borderColor, opacity, hoverText, eventHandlers);
     }
     //[cf]
     //[of]:    function nodeCircleAndLabelTextFromVisNode(visNode) {
@@ -868,6 +882,7 @@ GraphVis = function (renderer, options) {
             if (_.isNumber(description.radius)) nodeCircle.radius = description.radius;
             if (description.color) nodeCircle.color = description.color;
             if (description.borderColor) nodeCircle.borderColor = description.borderColor;
+            if (description.borderWidth) nodeCircle.borderWidth = description.borderWidth;
             if (_.isNumber(description.opacity)) nodeCircle.opacity = description.opacity;
             if (description.hoverText) nodeCircle.hoverText = description.hoverText;
             

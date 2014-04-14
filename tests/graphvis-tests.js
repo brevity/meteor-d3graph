@@ -95,7 +95,7 @@ Tinytest.addAsync(testLevel + "Link test", function (test, next) {
         var link = $(links[0]);
         test.equal(link.attr("data-id"), "node1->node2", "Link should have the ID we gave it");
         test.equal(link.css("stroke"), "rgb(255, 0, 0)", "Link should have the color we gave it");
-        test.equal(link.attr("d"), "M 10 10 L 20 20", "Link path should be a straight line from node1 to node2");
+        test.equal(link.attr("d"), "M 15.65685424949238 15.65685424949238 L 14.34314575050762 14.34314575050762", "Link path should be a straight line from node1 to node2");
         next();
     }, 20);
 });
@@ -163,7 +163,7 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     
     var linkLine = new LinkLine("link1", null, nc1, nc2, 1, "#f00", 1, false, 0, null, "", eventHandlers);
     var clusterHull = new ClusterHull("cluster1", null, null, [], [], [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
-    var labelText = new LabelText("label1", null, "label text", 10, 10, 0, 0, 10, "#f00", "#800", 1, "", eventHandlers);
+    var labelText = new LabelText("label1", null, "label text", 10, 10, 0, 0, "start", 10, "#f00", "#800", 1, "", eventHandlers);
     
     svgRenderer.update([clusterHull], [linkLine], [nc1, nc2], [labelText], idScale, idScale, 1, 0);
     var link = $(containerElement.find("path.link")[0]);
@@ -204,8 +204,6 @@ Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
         test.equal(markers.length, 1, "There should be exactly one marker defined");
         var marker = $(markers[0]);
         test.equal(marker.attr("id"), "marker-2-ff0000", "Marker should have an id that expresses size and color");
-        test.equal(link.css("stroke"), "rgb(255, 0, 0)", "Link should have the color we gave it");
-        test.equal(link.attr("d"), "M 10 10 L 20 20", "Link path should be a straight line from node1 to node2");
         next();
     }, 20);
 });
@@ -279,7 +277,7 @@ Tinytest.addAsync(testLevel + "Curved links test", function (test, next) {
         var link = $(links[0]);
         test.equal(link.attr("data-id"), "node1->node2", "Link should have the ID we gave it");
         test.equal(link.css("stroke"), "rgb(255, 0, 0)", "Link should have the color we gave it");
-        test.equal(link.attr("d"), "M 10 10 L 20 20", "Link path should be a straight line from node1 to node2");
+        test.equal(link.attr("d"), "M 14.17164470259329 16.826227396983295 A 14.142135623730951 14.142135623730951 0 0 0 13.173772603016717 15.828355297406691", "Link path should be a curved line from node1 to node2");
         next();
     }, 20);
 });
