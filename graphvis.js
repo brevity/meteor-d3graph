@@ -33,7 +33,7 @@ LinkLine = function (id, data, source, target, width, color, opacity, marker, cu
     this.width = width;
     this.color = color;
     this.opacity = opacity;
-    this.markerEnd = marker;
+    this.marker = marker;
     this.curvature = curvature;     // Radians to curve at the center. Negative for counter-clockwise curvature. 0 for a straight line.
     this.dashPattern = dashPattern;
     this.hoverText = hoverText;
@@ -248,11 +248,12 @@ SvgRenderer = function (containerElement, options) {
         var sizeColorCombos = {};
         
         _.each(linkLines, function (ll) {
-            if (ll.markerStart || ll.markerEnd) {
+            if (ll.marker) {
                 var size = ll.width.toFixed(0);
                 var color = d3.rgb(ll.color).toString(); // This is necessary to convert "red" into "ff0000" etc.
-                var sizeColorCombo = size + "-" + color.substr(1);
-                sizeColorCombos[sizeColorCombo] = { id: sizeColorCombo, size: size, color: color };
+                var opacity = ll.opacity;
+                var sizeColorCombo = size + "-" + color.substr(1) + Math.floor(opacity * 255).toString(16);
+                sizeColorCombos[sizeColorCombo] = { id: sizeColorCombo, size: size, color: color, opacity: opacity };
             }
         });
         
@@ -262,7 +263,7 @@ SvgRenderer = function (containerElement, options) {
     //[of]:    function getTextAnchor(labelText, xScale) {
     function getTextAnchor(labelText, xScale) {
         if (labelText.anchor === "auto") {
-            return xScale(labelText.x) < width / 2 ? "start" : "end";
+            return xScale(labelText.x) < width / 2 ? "end" : "start";
         } else {
             return labelText.anchor;
         }
@@ -403,6 +404,7 @@ SvgRenderer = function (containerElement, options) {
                 .attr("refX", function (d) { return 10 * d.size * radiusFactor; })
                 .attr("refY", function (d) { return 10 * d.size * radiusFactor; })
                 .attr("fill", function (d) { return d.color; })
+                .attr("opacity", function (d) { return d.opacity; })
             .select("path")
                 .attr("d", function (d) { return "M0,0L" + (10 * d.size * radiusFactor) + "," + (10 * d.size * radiusFactor) + "L0," + (10 * d.size * radiusFactor) + "z"});
         
@@ -433,8 +435,7 @@ SvgRenderer = function (containerElement, options) {
         
         link.transition().duration(transitionDuration)
             .attr("d", function (d) { return makeLinkPath(d, xScale, yScale, radiusFactor); })
-            .attr("marker-start", function (d) { return d.markerStart ? ("url(#marker-" + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
-            .attr("marker-end", function (d) { return d.markerEnd ? ("url(#marker-" + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + ")") : null; })
+            .attr("marker-end", function (d) { return d.marker ? ("url(#marker-" + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + Math.floor(d.opacity * 255).toString(16) + ")") : null; })
             .style("stroke-opacity", function (d) { return d.opacity; })
             .style("stroke-width", function (d) { return d.width * radiusFactor; })
             .style("stroke", function (d) { return d.color; });
@@ -720,6 +721,15 @@ defaultGraphVisOptions = {
     enableZoom: true,
     enablePan: true,
     enableForce: true,
+    forceParameters: {
+        linkDistance: 20,
+        linkStrength: 1,
+        friction: 0.9,
+        charge: -30,
+        chargeDistance: Infinity,
+        theta: 0.8,
+        gravity: 0.1
+    },
     enableCollisionDetection: true,
     enableClusterForce: false,
     zoomExtent: [0.25, 4],
@@ -1200,15 +1210,14 @@ GraphVis = function (renderer, options) {
             .nodes(nodeCircles)
             .links(linkLines)
             .size([renderer.width(), renderer.height()])
+            .linkDistance(options.forceParameters.linkDistance)
+            .linkStrength(options.forceParameters.linkStrength)
+            .friction(options.forceParameters.friction)
+            .charge(options.forceParameters.charge)
+            //.chargeDistance(options.forceParameters.chargeDistance)   // This doesn't seem to be supported in this version of D3.
+            .theta(options.forceParameters.theta)
+            .gravity(options.forceParameters.gravity)
             .on("tick", tick)
-            .linkDistance(function(l, i) {
-                var n1 = l.source, n2 = l.target;
-                return n1.clusterId === n2.clusterId ? 1 : 2;
-            })
-            .linkStrength(function(l, i) { return 1; })
-            .gravity(0.5)   // gravity+charge tweaked to ensure good 'grouped' view (e.g. green group not smack between blue&orange, ...
-            .charge(-600)    // ... charge is important to turn single-linked groups to the outside
-            .friction(0.5)   // friction adjusted to get dampened display: less bouncy bouncy ball [Swedish Chef, anyone?]
             .start();
     };
     //[cf]
