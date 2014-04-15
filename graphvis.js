@@ -267,9 +267,11 @@ SvgRenderer = function (containerElement, options) {
             // fix the sweep-path value
             var result = x(b);
             var vals = result.split(' ');
-            vals[7] = Math.floor(parseFloat(vals[7]));
-            vals[8] = Math.floor(parseFloat(vals[8]));
-    
+            if (vals[4] == "A") {   // If this is a curved link
+                vals[7] = Math.floor(parseFloat(vals[7]));
+                vals[8] = Math.floor(parseFloat(vals[8]));
+            }
+            
             // and join it back together
             return vals.join(' ');
         }
