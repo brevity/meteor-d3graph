@@ -697,42 +697,6 @@ VisCluster = function (id, data, isCollapsed) {
 //[cf]
 
 //[of]:defaultGraphVisOptions = {
-defaultNodeDescription = {
-    radius: 10,
-    color: "#888",
-    borderColor: "#333",
-    opacity: 1,
-    hoverText: null,
-    label: null
-};
-
-defaultLinkDescription = {
-    width: 1,
-    color: "#333",
-    opacity: 1,
-    marker: false,
-    curvature: 0,
-    dashPattern: null,
-    hoverText: null
-};
-
-// Collapsed clusters become node circles
-defaultCollapsedClusterDescription = {
-    radius: 20,
-    color: "#a88",
-    borderColor: "#633",
-    opacity: 1,
-    hoverText: null,
-    label: null
-};
-
-// Expanded clusters become cluster hulls
-defaultExpandedClusterDescription = {
-    color: "#a88",
-    borderColor: null,
-    opacity: 0.2,
-    hoverText: null
-};
 
 // This one simply returns interpolated values between the two nodes.
 // If a node is hovered, links that point to it will have markers.
@@ -745,6 +709,9 @@ defaultLinkDescriber = function (visLink, sourceNodeCircle, targetNodeCircle, ra
 };
 
 defaultCollapsedClusterDescriber = function () {
+    return {
+        
+    }
 };
 
 defaultExpandedClusterDescriber = function () {
@@ -798,15 +765,48 @@ defaultGraphVisOptions = {
     onClusterMouseOver: null,
     onClusterMouseOut: null,
     
-    
     // Visual element describing
-    defaultNodeDescription: defaultNodeDescription,
+    
+    defaultNodeDescription: {
+        radius: 10,
+        color: "#888",
+        borderColor: "#333",
+        borderWidth: 2,
+        opacity: 1,
+        hoverText: null,
+        label: null
+    },
     describeVisNode: null,
-    defaultLinkDescription: defaultLinkDescription,
+
+    defaultLinkDescription: {
+        width: 1,
+        color: "#333",
+        opacity: 1,
+        marker: false,
+        curvature: 0,
+        dashPattern: null,
+        hoverText: null
+    },
     describeVisLink: defaultLinkDescriber,
-    defaultCollapsedClusterDescription: defaultCollapsedClusterDescription,
+
+    // Collapsed clusters become node circles
+    defaultCollapsedClusterDescription: {
+        radius: 20,
+        color: "#a88",
+        borderColor: "#633",
+        opacity: 1,
+        hoverText: null,
+        label: null
+    },
     describeCollapsedCluster: defaultCollapsedClusterDescriber,
-    defaultExpandedClusterDescription: defaultExpandedClusterDescription,
+
+    // Expanded clusters become cluster hulls
+    defaultExpandedClusterDescription: {
+        color: "#a88",
+        borderColor: null,
+        opacity: 0.2,
+        hoverText: null
+    },
     describeExpandedCluster: defaultExpandedClusterDescriber,
 };
 //[cf]
@@ -834,7 +834,7 @@ GraphVis = function (renderer, options) {
             radiusFactor = zoomDensityScale(zoomBehavior.scale());
             
             if (options.updateOnlyPositionsOnZoom)
-                renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+                self.updatePositions("zoom");
             else
                 self.update(null, null, null, 0);
 
@@ -1047,7 +1047,7 @@ GraphVis = function (renderer, options) {
                 transitionDuration: transitionDuration
             };
             
-            options.onUpdatePreProcess(params);
+            options.onUpdatePreProcess(params, "update");
             
             visNodes = params.visNodes;
             visLinks = params.visLinks;
@@ -1183,7 +1183,7 @@ GraphVis = function (renderer, options) {
                 transitionDuration: transitionDuration 
             };
     
-            options.onUpdatePreRender(params);
+            options.onUpdatePreRender(params, "update");
     
             clusterHulls = params.clusterHulls;
             linkLines = params.linkLines;
@@ -1197,6 +1197,36 @@ GraphVis = function (renderer, options) {
     
         renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration);
     };
+    //[cf]
+    //[of]:    this.updatePositions = function (updateType) {
+    this.updatePositions = function (updateType) {
+    
+        if (options.onUpdatePreRender) {
+            var params = {
+                clusterHulls: clusterHulls, 
+                linkLines: linkLines, 
+                nodeCircles: nodeCircles, 
+                labelTexts: labelTexts, 
+                xScale: xScale, 
+                yScale: yScale, 
+                radiusFactor: radiusFactor, 
+                transitionDuration: transitionDuration 
+            };
+    
+            options.onUpdatePreRender(params, updateType);
+    
+            clusterHulls = params.clusterHulls;
+            linkLines = params.linkLines;
+            nodeCircles = params.nodeCircles;
+            labelTexts = params.labelTexts;
+            xScale = params.xScale;
+            yScale = params.yScale;
+            radiusFactor = params.radiusFactor;
+            transitionDuration = params.transitionDuration;
+        }
+    
+        renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+    }
     //[cf]
 
     //[of]:    function cluster(alpha) {
@@ -1270,7 +1300,7 @@ GraphVis = function (renderer, options) {
             lt.y = nodeCircle.y;
         });
     
-        renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
+        self.updatePositions("tick");
     }
     //[cf]
 
