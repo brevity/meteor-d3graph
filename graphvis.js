@@ -253,6 +253,7 @@ SvgRenderer = function (containerElement, options) {
                 var color = d3.rgb(ll.color).toString(); // This is necessary to convert "red" into "ff0000" etc.
                 var opacity = ll.opacity;
                 var sizeColorCombo = size + "-" + color.substr(1) + Math.floor(opacity * 255).toString(16);
+                
                 sizeColorCombos[sizeColorCombo] = { id: sizeColorCombo, size: size, color: color, opacity: opacity };
             }
         });
@@ -433,9 +434,19 @@ SvgRenderer = function (containerElement, options) {
             .style("stroke-width", 1e-6)
             .remove();
         
+        // Don't do a transition for the marker, the tweens won't exist.
+        link
+            .attr("marker-end", function (d) { 
+                if (!d.marker) return null;
+                
+                var sizeColorCombo =  + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + Math.floor(d.opacity * 255).toString(16);
+                //console.log("Suspicious sizeColorCombo: ", sizeColorCombo);
+                
+                return "url(#marker-" + sizeColorCombo + ")";
+            })
+        
         link.transition().duration(transitionDuration)
             .attr("d", function (d) { return makeLinkPath(d, xScale, yScale, radiusFactor); })
-            .attr("marker-end", function (d) { return d.marker ? ("url(#marker-" + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + Math.floor(d.opacity * 255).toString(16) + ")") : null; })
             .style("stroke-opacity", function (d) { return d.opacity; })
             .style("stroke-width", function (d) { return d.width * radiusFactor; })
             .style("stroke", function (d) { return d.color; });
@@ -788,13 +799,13 @@ GraphVis = function (renderer, options) {
         .domain([0, renderer.height()])
         .range([0, renderer.height()]);
 
-    var zoomDensityScale = d3.scale.linear().domain([0.25, 4]).range([0.5, 2]);
+    var zoomDensityScale = options.zoomDensityScale;
     var radiusFactor = zoomDensityScale(1);
 
     var zoomBehavior = d3.behavior.zoom()
         .x(xScale)
         .y(yScale)
-        .scaleExtent([0.25, 4])
+        .scaleExtent(options.zoomExtent)
         .on("zoom", function () { 
             radiusFactor = zoomDensityScale(zoomBehavior.scale());
             
