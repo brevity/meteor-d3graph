@@ -1051,9 +1051,19 @@ GraphVis = function (renderer, options) {
         if (_.isUndefined(transitionDuration)) transitionDuration = 250;
     
         if (options.onUpdatePreProcess) {
-            var updatedParams = options.onUpdatePreProcess(visNodes, visLinks, visClusters, { transitionDuration: transitionDuration});
-            if (updatedParams && updatedParams.transitionDuration)
-                transitionDuration = updatedParams.transitionDuration;
+            var params = {
+                visNodes: visNodes,
+                visLinks: visLinks,
+                visClusters: visClusters,
+                transitionDuration: transitionDuration
+            };
+            
+            options.onUpdatePreProcess(params);
+            
+            visNodes = params.visNodes;
+            visLinks = params.visLinks;
+            visClusters = params.visClusters;
+            transitionDuration = params.transitionDuration;
         }
     
         //[of]:    Create cluster hulls
@@ -1173,13 +1183,27 @@ GraphVis = function (renderer, options) {
         clusterHulls = newClusterHulls.concat(phantomClusterHulls);
     
         if (options.onUpdatePreRender) {
-            var updatedParams = options.onUpdatePreRender(clusterHulls, linkLines, nodeCircles, labelTexts, { xScale: xScale, yScale: yScale, radiusFactor: radiusFactor, transitionDuration: transitionDuration });
-            if (updatedParams) {
-                if (updatedParams.xScale) xScale = updatedParams.xScale;
-                if (updatedParams.yScale) yScale = updatedParams.yScale;
-                if (updatedParams.radiusFactor) radiusFactor = updatedParams.radiusFactor;
-                if (updatedParams.transitionDuration) transitionDuration = updatedParams.transitionDuration;
-            }
+            var params = {
+                clusterHulls: clusterHulls, 
+                linkLines: linkLines, 
+                nodeCircles: nodeCircles, 
+                labelTexts: labelTexts, 
+                xScale: xScale, 
+                yScale: yScale, 
+                radiusFactor: radiusFactor, 
+                transitionDuration: transitionDuration 
+            };
+    
+            options.onUpdatePreRender(params);
+    
+            clusterHulls = params.clusterHulls;
+            linkLines = params.linkLines;
+            nodeCircles = params.nodeCircles;
+            labelTexts = params.labelTexts;
+            xScale = params.xScale;
+            yScale = params.yScale;
+            radiusFactor = params.radiusFactor;
+            transitionDuration = params.transitionDuration;
         }
     
         renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration);
