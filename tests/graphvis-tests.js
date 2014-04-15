@@ -340,7 +340,7 @@ Tinytest.add(testLevel + "Simple update test", function (test) {
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
     
-    var node1 = new VisNode("node1", null, null, null, null);
+    var node1 = new VisNode("node1");
     
     // Execute
     graphVis.update([node1], [], []);
@@ -379,8 +379,8 @@ Tinytest.add(testLevel + "Collapsed cluster test", function (test) {
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
     
-    var node1 = new VisNode("node1", null, "cluster1", null, null);
-    var node2 = new VisNode("node2", null, "cluster1", null, null);
+    var node1 = new VisNode("node1", null, "cluster1");
+    var node2 = new VisNode("node2", null, "cluster1");
     var cluster1 = new VisCluster("cluster1", null, true);
 
     // Execute
@@ -627,54 +627,6 @@ Tinytest.add(testLevel + "Label test", function (test) {
     test.equal(lt.text, "Label text", "The LabelText should have the text that we assigned in describeVisNode");
     test.equal(lt.fontSize, 14, "The LabelText should have have the font size that we assigned in describeVisNode");
     test.equal(lt.color, "#f00", "The LabelText should have have the color that we assigned in describeVisNode");
-});
-//[cf]
-//[of]:Tinytest.add(testLevel + "Phantom node test" function (test) {
-Tinytest.add(testLevel + "Phantom node test", function (test) {
-    // Setup
-    var mockRenderer = makeMockRenderer();
-    var graphVis = new GraphVis(mockRenderer, {});
-    
-    var phantomNode = new NodeCircle("phantomNode1", null, 10, 10, 10, "#f00", "#800", 3, 1, "", true, {});
-    graphVis.addPhantomNodeCircle(phantomNode);
-        
-    // Execute
-    graphVis.update([], [], []);
-    
-    // Verify
-    test.equal(mockRenderer.nodeCircles.length, 1, "There should be one NodeCircle representing our phantom node");
-    
-    var nc = mockRenderer.nodeCircles[0];
-    test.equal(nc, phantomNode, "the renderer should be fed our pahntom node");
-});
-//[cf]
-//[of]:Tinytest.add(testLevel + "Phantom link from real node to phantom node test" function (test) {
-Tinytest.add(testLevel + "Phantom link from real node to phantom node test", function (test) {
-    // Setup
-    var mockRenderer = makeMockRenderer();
-    var graphVis = new GraphVis(mockRenderer, {});
-    
-    var node1 = new VisNode("node1", null, null, null, null);
-
-    // Update once to make graphVis create a nodeCircle for our VisNode
-    graphVis.update([node1], [], []);
-    var nodeCircleForNode1 = mockRenderer.nodeCircles[0];    
-
-    // Add the phantom node
-    var phantomNode = new NodeCircle("phantomNode1", null, 10, 10, 10, "#f00", "#800", 3, 1, "", true, {});
-    graphVis.addPhantomNodeCircle(phantomNode);
-    
-    var phantomLink = new LinkLine("phantomLink1", null, nodeCircleForNode1, phantomNode, 1, "#f00", 1, false, 0, null, "", {});
-    graphVis.addPhantomLinkLine(phantomLink);
-        
-    // Execute
-    graphVis.update([node1], [], []);
-    
-    // Verify
-    test.equal(mockRenderer.linkLines.length, 1, "There should be one LinkLinerepresenting our phantom link");
-    
-    var ll = mockRenderer.linkLines[0];
-    test.equal(ll, phantomLink, "the renderer should be fed our pahntom link");
 });
 //[cf]
 //[of]:Tinytest.add(testLevel + "onUpdatePreProcess test", function (test) {

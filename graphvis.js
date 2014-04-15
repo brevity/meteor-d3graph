@@ -846,11 +846,6 @@ GraphVis = function (renderer, options) {
 
     var visNodes, visLinks, visClusters;
     
-    var phantomClusterHulls = [];
-    var phantomLinkLines = [];
-    var phantomNodeCircles = [];
-    var phantomLabelTexts = [];
-    
     var clusterHulls = [];
     var linkLines = [];
     var nodeCircles = [];
@@ -1171,10 +1166,10 @@ GraphVis = function (renderer, options) {
         
         //[cf]
     
-        nodeCircles = newNodeCircles.concat(phantomNodeCircles);
-        linkLines = newLinkLines.concat(phantomLinkLines);
-        labelTexts = newLabelTexts.concat(phantomLabelTexts);
-        clusterHulls = newClusterHulls.concat(phantomClusterHulls);
+        nodeCircles = newNodeCircles;
+        linkLines = newLinkLines;
+        labelTexts = newLabelTexts;
+        clusterHulls = newClusterHulls;
     
         if (options.onUpdatePreRender) {
             var params = {
@@ -1299,19 +1294,6 @@ GraphVis = function (renderer, options) {
     //[of]:    this.resumeForce = function () {
     this.resumeForce = function () {
         force.resume();
-    }
-    //[cf]
-
-    this.addPhantomClusterHull = function (clusterHull) { phantomClusterHulls.push(clusterHull); }
-    this.addPhantomLinkLine = function (linkLine) { phantomLinkLines.push(linkLine); }
-    this.addPhantomNodeCircle = function (nodeCircle) { phantomNodeCircles.push(nodeCircle); }
-    this.addPhantomLabelTetx = function (labelText) { phantomLabelTexts.push(labelText); }
-    //[of]:    this.clearPhantomElements() {
-    this.clearPhantomElements = function () {
-        phantomClusterHulls = [];
-        phantomLinkLines = [];
-        phantomNodeCircles = [];
-        phantomLabelTexts = [];
     }
     //[cf]
 
