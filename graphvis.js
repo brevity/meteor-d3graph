@@ -260,7 +260,7 @@ SvgRenderer = function (containerElement, options) {
             // calculate the standard string-based interpolation value
             var path = makeLinkPath(d, xScale, yScale, radiusFactor);
             if(!path)
-                return '';
+                return "";
     
             var x = d3.interpolateString(a, path);
     
@@ -350,7 +350,6 @@ SvgRenderer = function (containerElement, options) {
         // Handle click and dblclick..
         selection.on("click", function (d, i) {
             if (d.eventHandlers.hasOwnProperty("click") && d.eventHandlers.hasOwnProperty("dblclick")) {
-                console.log("Both events");
                 if (singleClickTimer) {
                     d.eventHandlers.dblclick(d, i, d3.event);
                     clearTimeout(singleClickTimer);
@@ -364,7 +363,6 @@ SvgRenderer = function (containerElement, options) {
                 }
                 d3.event.stopPropagation();
             } else if (d.eventHandlers.hasOwnProperty("click")) {
-                console.log("only the click event");
                 d.eventHandlers.click(d, i, d3.event);
                 d3.event.stopPropagation();
             }
@@ -779,8 +777,9 @@ defaultGraphVisOptions = {
     updateOnlyPositionsOnZoom: true,        // If false, a complete update() will take place during zoom. More flexible but slower.
     updateOnlyPositionsOnTick: true,        // Likewise, for force ticks.
 
-
     // Event handling
+    onUpdatePreProcess: null,
+    onUpdatePreRender: null,
     onClick: null,
     onNodeClick: null,
     onNodeDoubleClick: null,
@@ -1051,6 +1050,12 @@ GraphVis = function (renderer, options) {
         if (newVisClusters) visClusters = newVisClusters;
         if (_.isUndefined(transitionDuration)) transitionDuration = 250;
     
+        if (options.onUpdatePreProcess) {
+            var updatedParams = options.onUpdatePreProcess(visNodes, visLinks, visClusters, { transitionDuration: transitionDuration});
+            if (updatedParams && updatedParams.transitionDuration)
+                transitionDuration = updatedParams.transitionDuration;
+        }
+    
         //[of]:    Create cluster hulls
         //[c]Create cluster hulls
         
@@ -1166,6 +1171,16 @@ GraphVis = function (renderer, options) {
         linkLines = newLinkLines.concat(phantomLinkLines);
         labelTexts = newLabelTexts.concat(phantomLabelTexts);
         clusterHulls = newClusterHulls.concat(phantomClusterHulls);
+    
+        if (options.onUpdatePreRender) {
+            var updatedParams = options.onUpdatePreRender(clusterHulls, linkLines, nodeCircles, labelTexts, { xScale: xScale, yScale: yScale, radiusFactor: radiusFactor, transitionDuration: transitionDuration });
+            if (updatedParams) {
+                if (updatedParams.xScale) xScale = updatedParams.xScale;
+                if (updatedParams.yScale) yScale = updatedParams.yScale;
+                if (updatedParams.radiusFactor) radiusFactor = updatedParams.radiusFactor;
+                if (updatedParams.transitionDuration) transitionDuration = updatedParams.transitionDuration;
+            }
+        }
     
         renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration);
     };

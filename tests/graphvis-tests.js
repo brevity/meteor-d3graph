@@ -263,8 +263,6 @@ Tinytest.addAsync(testLevel + "Click/double-click test", function (test, next) {
     var n3e = $(containerElement.find("circle.node")[2]);
     var n4e = $(containerElement.find("circle.node")[3]);
     
-    console.log("==================================================");
-    
     // Execute
     n1e.simulate("click");
     
