@@ -677,6 +677,25 @@ Tinytest.add(testLevel + "Phantom link from real node to phantom node test", fun
     test.equal(ll, phantomLink, "the renderer should be fed our pahntom link");
 });
 //[cf]
+//[of]:Tinytest.add(testLevel + "onUpdatePreProcess test", function (test) {
+Tinytest.add(testLevel + "onUpdatePreProcess test", function (test) {
+    // Setup
+    var mockRenderer = makeMockRenderer();
+    
+    function onUpdatePreProcess(params) {
+        params.visNodes.push(new VisNode("added node"));
+    }
+    
+    var graphVis = new GraphVis(mockRenderer, { onUpdatePreProcess: onUpdatePreProcess });
+    var node1 = new VisNode("node1");
+    
+    // Execute
+    graphVis.update([node1], [], []);
+    
+    // Verify
+    testArrayProperty(test, mockRenderer.nodeCircles, "id", ["node1", "added node"]);
+});
+//[cf]
 
 
 

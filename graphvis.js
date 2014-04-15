@@ -17,12 +17,6 @@ NodeCircle = function (id, data, x, y, radius, color, borderColor, borderWidth, 
     this.hoverText = hoverText;
     this.fixed = fixed;
     this.eventHandlers = eventHandlers;
-
-    // These are reserved for d3.force. Initialized here so the compiler constructor will know about them.
-    this.index = null;
-    this.px = null;
-    this.py = null;
-    this.weight = null;
 };
 
 LinkLine = function (id, data, source, target, width, color, opacity, marker, curvature, dashPattern, hoverText, eventHandlers) {
@@ -267,7 +261,7 @@ SvgRenderer = function (containerElement, options) {
             // fix the sweep-path value
             var result = x(b);
             var vals = result.split(' ');
-            if (vals[4] == "A") {   // If this is a curved link
+            if (vals[3] == "A") {   // If this is a curved link
                 vals[7] = Math.floor(parseFloat(vals[7]));
                 vals[8] = Math.floor(parseFloat(vals[8]));
             }
@@ -1280,7 +1274,7 @@ GraphVis = function (renderer, options) {
             lt.x = nodeCircle.x;
             lt.y = nodeCircle.y;
         });
-        
+    
         renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
     }
     //[cf]
