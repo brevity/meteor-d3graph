@@ -118,6 +118,9 @@ SvgRenderer = function (containerElement, options) {
         var ty = yScale(d.target.y);
     
         if (d.curvature === 0) {
+            if (sx === tx && sy === ty)
+                return null;
+    
             var sr = (d.source.radius + d.source.borderWidth) * radiusFactor;
             var tr = (d.target.radius + d.target.borderWidth) * radiusFactor;
     
@@ -132,7 +135,12 @@ SvgRenderer = function (containerElement, options) {
             var rtx = tx - tr * normalizedVectorX;
             var rty = ty - tr * normalizedVectorY;
             
-            return "M " + rsx + " " + rsy + " L " + rtx + " " + rty;
+            var result = "M " + rsx + " " + rsy + " L " + rtx + " " + rty;
+            
+            if(result.indexOf("NaN") !== -1)
+                console.log("STOP");
+            
+            return result;
         } else {
             //[of]:        Original curve
             //[c]Original curve
@@ -243,6 +251,31 @@ SvgRenderer = function (containerElement, options) {
     
     
     //[cf]
+    //[of]:    function linkTween(xScale, yScale, radiusFactor, d, i, a) {
+    function linkTween(xScale, yScale, radiusFactor, d, i, a) {
+        return function (b) {
+            if(!d || !b)
+                return a;
+    
+            // calculate the standard string-based interpolation value
+            var path = makeLinkPath(d, xScale, yScale, radiusFactor);
+            if(!path)
+                return '';
+    
+            var x = d3.interpolateString(a, path);
+    
+            // fix the sweep-path value
+            var result = x(b);
+            var vals = result.split(' ');
+            vals[7] = Math.floor(parseFloat(vals[7]));
+            vals[8] = Math.floor(parseFloat(vals[8]));
+    
+            // and join it back together
+            return vals.join(' ');
+        }
+    };
+    //[cf]
+
     //[of]:    function makeMarkerDefs(linkLines) {
     function makeMarkerDefs(linkLines) {
         var sizeColorCombos = {};
@@ -434,19 +467,15 @@ SvgRenderer = function (containerElement, options) {
             .style("stroke-width", 1e-6)
             .remove();
         
-        // Don't do a transition for the marker, the tweens won't exist.
         link
             .attr("marker-end", function (d) { 
                 if (!d.marker) return null;
-                
                 var sizeColorCombo =  + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + Math.floor(d.opacity * 255).toString(16);
-                //console.log("Suspicious sizeColorCombo: ", sizeColorCombo);
-                
                 return "url(#marker-" + sizeColorCombo + ")";
             })
         
         link.transition().duration(transitionDuration)
-            .attr("d", function (d) { return makeLinkPath(d, xScale, yScale, radiusFactor); })
+            .attrTween("d", linkTween.bind(null, xScale, yScale, radiusFactor))
             .style("stroke-opacity", function (d) { return d.opacity; })
             .style("stroke-width", function (d) { return d.width * radiusFactor; })
             .style("stroke", function (d) { return d.color; });
