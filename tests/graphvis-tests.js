@@ -26,8 +26,16 @@ function makeMockRenderer() {
 }
 
 function makeNodeCircle(id, properties) {
-    var result = new NodeCircle(id);
-    var defaults = { visData: null, x: 10, y: 10, radius: 5, color: "#f00", borderColor: "#800", borderWidth: 3, opacity: 1, hoverText: "Node hover-text", fixed: false, eventHandlers: {}};
+    var result = new NodeCircle(id, null);
+    var defaults = { x: 10, y: 10, radius: 5, color: "#f00", borderColor: "#800", borderWidth: 3, opacity: 1, hoverText: "Node hover-text", fixed: false, eventHandlers: {}};
+    
+    result.updateProperties(_.extend({}, defaults, properties));
+    return result;
+}
+
+function makeLinkLine(sourceNodeCircle, targetNodeCircle, properties) {
+    var result = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, sourceNodeCircle, targetNodeCircle, null);
+    var defaults = { width: 2, color: "#f00", opacity: 1, marker: false, curvature: 0, dashPattern: null, hoverText: "Hover text", eventHandlers: {} };
     
     result.updateProperties(_.extend({}, defaults, properties));
     return result;
@@ -91,7 +99,7 @@ Tinytest.addAsync(testLevel + "Link test", function (test, next) {
     var node1 = makeNodeCircle("node1", { x: 10, y: 10, radius: 5 });
     var node2 = makeNodeCircle("node2", { x: 20, y: 20, radius: 5 });
     
-    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, 0, null, "Hover text", {});
+    var link = makeLinkLine(node1, node2);
     
     // Execute
     svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 1, 0);
@@ -170,7 +178,7 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     var nc1 = makeNodeCircle("node1");
     var nc2 = makeNodeCircle("node2");
     
-    var linkLine = new LinkLine("link1", null, nc1, nc2, 1, "#f00", 1, false, 0, null, "", eventHandlers);
+    var linkLine = makeLinkLine(nc1, nc2, { eventHandlers: eventHandlers });
     var clusterHull = new ClusterHull("cluster1", null, [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
     var labelText = new LabelText("label1", null, "label text", 10, 10, 0, 0, "start", 10, "#f00", "#800", 1, "", eventHandlers);
     
@@ -198,7 +206,7 @@ Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
     var node1 = makeNodeCircle("node1");
     var node2 = makeNodeCircle("node2");
     
-    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, 0, null, "Hover text", {});
+    var link = makeLinkLine(node1, node2, { marker: true });
     
     // Execute
     svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 1, 0);
@@ -230,7 +238,7 @@ Tinytest.addAsync(testLevel + "Link marker opacity test", function (test, next) 
     var node1 = makeNodeCircle("node1");
     var node2 = makeNodeCircle("node2");
     
-    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 0.7, true, 0, null, "Hover text", {});
+    var link = makeLinkLine(node1, node2, { opacity: 0.7, marker: true });
     
     // Execute
     svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 1, 0);
@@ -305,7 +313,7 @@ Tinytest.addAsync(testLevel + "Curved links test", function (test, next) {
     var node1 = makeNodeCircle("node1", { x: 10, y: 10, radius: 5 });
     var node2 = makeNodeCircle("node2", { x: 20, y: 20, radius: 5 });
     
-    var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, 0.5, null, "Hover text", {});
+    var link = makeLinkLine(node1, node2, { curvature: 0.5 });
     
     // Execute
     svgRenderer.update([], [link], [node1, node2], [], idScale, idScale, 1, 0);

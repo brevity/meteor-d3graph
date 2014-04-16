@@ -129,20 +129,35 @@ NodeCircle.prototype.updateProperties = function (properties) {
     _.extend(this, properties);
 }
 
-LinkLine = function (id, data, source, target, width, color, opacity, marker, curvature, dashPattern, hoverText, eventHandlers) {
+LinkLine = function (id, source, target, visData) {
     this.id = id;
-    this.data = data;
-    this.source = source;   // These should be NodeCircle instances
-    this.target = target;       // - " -
-    this.width = width;
-    this.color = color;
-    this.opacity = opacity;
-    this.marker = marker;
-    this.curvature = curvature;     // Radians to curve at the center. Negative for counter-clockwise curvature. 0 for a straight line.
-    this.dashPattern = dashPattern;
-    this.hoverText = hoverText;
-    this.eventHandlers = eventHandlers;
+    this.source = source;
+    this.target = target;
+    this.visData = visData;
 };
+
+// These properties must be present for rendering
+LinkLine.prototype.propertyTypes = [
+    TypeChecker.string("id"),
+    TypeChecker.object("source"), // These should be NodeCircle instances. (Names cannot change because of d3.force)
+    TypeChecker.object("target"),  //  -   "   -
+    TypeChecker.object("visData"),  // Can be a VisLink or an array of VisLinks if this links from and/or to a cluster
+    TypeChecker.number("width"),
+    TypeChecker.color("color"),
+    TypeChecker.number("opacity"),
+    TypeChecker.boolean("marker"),
+    TypeChecker.number("curvature"),
+    TypeChecker.string("dashPattern"),
+    TypeChecker.string("hoverText"),
+    TypeChecker.object("eventHandlers")
+];
+
+LinkLine.prototype.optionalPropertyTypes = [];
+
+LinkLine.prototype.updateProperties = function (properties) {
+    TypeChecker.checkProperties(properties, [], this.propertyTypes, true);
+    _.extend(this, properties);
+}
 
 LabelText = function (id, data, text, x, y, offsetX, offsetY, anchor, fontSize, color, borderColor, opacity, hoverText, eventHandlers) {
     this.id = id;
@@ -549,6 +564,10 @@ SvgRenderer = function (containerElement, options) {
         //[of]:    Links
         //[c]Links
         
+        if (TypeChecker.enabled) {
+            _.each(linkLines, function (ll) { TypeChecker.checkProperties(ll, ll.propertyTypes, ll.optionalPropertyTypes, true); });
+        }
+        
         var link = layers.links.selectAll("path.link")
             .data(linkLines, function (d) { return d.id; });
         
@@ -712,6 +731,10 @@ SvgRenderer = function (containerElement, options) {
         //[cf]
         //[of]:    Links
         //[c]Links
+        
+        if (TypeChecker.enabled) {
+            _.each(linkLines, function (ll) { TypeChecker.checkProperties(ll, ll.propertyTypes, ll.optionalPropertyTypes, true); });
+        }
         
         var link = layers.links.selectAll("path.link")
             .data(linkLines, function (d) { return d.id; });
@@ -926,6 +949,17 @@ defaultGraphVisOptions = {
         hoverText: null
     },
     describeExpandedCluster: defaultExpandedClusterDescriber,
+
+    defaultClusterLinkDescription: {
+        width: 2,
+        color: "#222",
+        opacity: 1,
+        marker: false,
+        curvature: 0,
+        dashPattern: null,
+        hoverText: null
+    },
+    describeClusterLink: null
 };
 //[cf]
 
@@ -1131,53 +1165,54 @@ GraphVis = function (renderer, options) {
     //[cf]
     //[of]:    function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {
     function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {
-        var description = options.defaultLinkDescription;
+        var linkLine;
+        var id = sourceNodeCircle.id + "->" + targetNodeCircle.id;
     
-        if (options.describeVisLink) {
-            var d = options.describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor);
-            description = _.extend({}, description, d);
+        var oldLinkLine = _.find(linkLines, function (ll) { return ll.id === id; });
+        if (oldLinkLine)
+            linkLine = oldLinkLine;
+        else {
+            linkLine = new LinkLine(id, sourceNodeCircle, targetNodeCircle, visLink);
+    
+            linkLine.eventHandlers = {};    
+            if (options.onLinkClick) { linkLine.eventHandlers.click = options.onLinkClick; }
+            if (options.onLinkDoubleClick) { linkLine.eventHandlers.dblclick = options.onLinkDoubleClick; }
+            if (options.onLinkMouseOver) { linkLine.eventHandlers.mouseover = options.onLinkMouseOver; }
+            if (options.onLinkMouseOut) { linkLine.eventHandlers.mouseout = options.onLinkMouseOut; }
         }
     
-        var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
-            visLink, 
-            sourceNodeCircle, 
-            targetNodeCircle, 
-            description.width, 
-            description.color, 
-            description.opacity, 
-            description.marker,
-            description.curvature,
-            description.dashPattern, 
-            description.hoverText,
-            {});
+        var dynamicDescription = options.describeVisLink ? options.describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor) : {};
+        var description = _.extend({}, options.defaultLinkDescription, dynamicDescription);
+    
+        linkLine.updateProperties(description);
     
         return linkLine;
     }
     //[cf]
     //[of]:    function linkLineFromClusterLinks(nodePairs) {
     function  linkLineFromClusterLink(sourceNodeCircle, targetNodeCircle, visLinks) {
-        var width = 2;
-        var color = "#0f0";
-        var opacity = 1;
-        var marker = false;
-        var dashPattern = null;
-        var curvature = 0;
-        var hoverText = "";
+        var linkLine;
+        var id = sourceNodeCircle.id + "->" + targetNodeCircle.id;
     
-        var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
-            visLinks, 
-            sourceNodeCircle,
-            targetNodeCircle,
-            width, 
-            color, 
-            opacity, 
-            marker,
-            curvature,
-            dashPattern, 
-            hoverText,
-            {});
+        var oldLinkLine = _.find(linkLines, function (ll) { return ll.id === id; });
+        if (oldLinkLine)
+            linkLine = oldLinkLine;
+        else {
+            linkLine = new LinkLine(id, sourceNodeCircle, targetNodeCircle, visLinks);
     
-        return linkLine;    
+            linkLine.eventHandlers = {};    
+            if (options.onLinkClick) { linkLine.eventHandlers.click = options.onLinkClick; }
+            if (options.onLinkDoubleClick) { linkLine.eventHandlers.dblclick = options.onLinkDoubleClick; }
+            if (options.onLinkMouseOver) { linkLine.eventHandlers.mouseover = options.onLinkMouseOver; }
+            if (options.onLinkMouseOut) { linkLine.eventHandlers.mouseout = options.onLinkMouseOut; }
+        }
+    
+        var dynamicDescription = options.describeClusterLink ? options.describeClusterLink(visLinks, sourceNodeCircle, targetNodeCircle, radiusFactor) : {};
+        var description = _.extend({}, options.defaultClusterLinkDescription, dynamicDescription);
+    
+        linkLine.updateProperties(description);
+    
+        return linkLine;
     }
     //[cf]
 
