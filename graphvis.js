@@ -94,6 +94,9 @@ TypeChecker = {
 //[of]:Classes fed to renderer
 //[c]Classes fed to renderer
 
+//[of]:NodeCircle
+//[c]NodeCircle
+
 NodeCircle = function (id, visData) {
     this.id = id;
     this.visData = visData;
@@ -128,6 +131,9 @@ NodeCircle.prototype.updateProperties = function (properties) {
     TypeChecker.checkProperties(properties, [], this.propertyTypes, true);
     _.extend(this, properties);
 }
+//[cf]
+//[of]:LinkLine
+//[c]LinkLine
 
 LinkLine = function (id, source, target, visData) {
     this.id = id;
@@ -158,23 +164,42 @@ LinkLine.prototype.updateProperties = function (properties) {
     TypeChecker.checkProperties(properties, [], this.propertyTypes, true);
     _.extend(this, properties);
 }
+//[cf]
+//[of]:LabelText
+//[c]LabelText
 
-LabelText = function (id, data, text, x, y, offsetX, offsetY, anchor, fontSize, color, borderColor, opacity, hoverText, eventHandlers) {
+LabelText = function (id, data) {
     this.id = id;
     this.data = data;
-    this.text = text;
-    this.x = x;
-    this.y = y;
-    this.offsetX = offsetX;    // When text-anchor is "end" or "auto" that computes to end, this will be negated.
-    this.offsetY = offsetY;
-    this.anchor = anchor;   // text-anchor attribute (start | middle | end), but can also be set to "auto".
-    this.fontSize = fontSize;
-    this.color = color;
-    this.borderColor = borderColor;
-    this.opacity = opacity;
-    this.hoverText = hoverText;
-    this.eventHandlers = eventHandlers;
 };
+
+// These properties must be present for rendering
+LabelText.prototype.propertyTypes = [
+    TypeChecker.string("id"),
+    TypeChecker.object("data"),
+    TypeChecker.string("text"),
+    TypeChecker.number("x"), // Note: x and y are NOT scaled to screen space because they are manipulated by d3.force
+    TypeChecker.number("y"), // Scaling takes place in SvgRenderer.update, which is why it takes the scales as parameters.
+    TypeChecker.number("offsetX"),
+    TypeChecker.number("offsetY"),
+    TypeChecker.string("anchor"),
+    TypeChecker.number("fontSize"),
+    TypeChecker.color("color"),
+    TypeChecker.color("borderColor"),
+    TypeChecker.number("opacity"),
+    TypeChecker.string("hoverText"),
+    TypeChecker.object("eventHandlers")
+];
+
+LabelText.prototype.optionalPropertyTypes = [];
+
+LabelText.prototype.updateProperties = function (properties) {
+    TypeChecker.checkProperties(properties, [], this.propertyTypes, true);
+    _.extend(this, properties);
+}
+//[cf]
+//[of]:ClusterHull
+//[c]ClusterHull
 
 ClusterHull = function (id, data, nodeCircles, color, borderColor, opacity, hoverText, eventHandlers) {
     this.id = id;
@@ -186,6 +211,9 @@ ClusterHull = function (id, data, nodeCircles, color, borderColor, opacity, hove
     this.hoverText = hoverText;
     this.eventHandlers = eventHandlers;
 };
+//[cf]
+
+
 
 //[cf]
 
@@ -646,6 +674,10 @@ SvgRenderer = function (containerElement, options) {
         //[of]:    Labels
         //[c]Labels
         
+        if (TypeChecker.enabled) {
+            _.each(labelTexts, function (lt) { TypeChecker.checkProperties(lt, lt.propertyTypes, lt.optionalPropertyTypes, true); });
+        }
+        
         var label = layers.labels.selectAll("g.label")
             .data(labelTexts, function (d) { return d.id; });
         
@@ -769,6 +801,10 @@ SvgRenderer = function (containerElement, options) {
         //[cf]
         //[of]:    Labels
         //[c]Labels
+        
+        if (TypeChecker.enabled) {
+            _.each(labelTexts, function (lt) { TypeChecker.checkProperties(lt, lt.propertyTypes, lt.optionalPropertyTypes, true); });
+        }
         
         var label = layers.labels.selectAll("g.label")
             .data(labelTexts, function (d) { return d.id; });
@@ -1031,7 +1067,7 @@ GraphVis = function (renderer, options) {
     }
     
     //[cf]
-    //[of]:    function labelTextFromLabelDescription(label, id, nodeCircleX, nodeCircleY, nodeCircleColor, nodeCircleBorderColor, nodeCircleOpacity) {
+    //[of]:    function labelTextFromLabelDescription(label, id, x, y, nodeCircleColor, nodeCircleBorderColor, nodeCircleOpacity) {
     function labelTextFromLabelDescription(label, id, x, y, nodeCircleColor, nodeCircleBorderColor, nodeCircleOpacity) {
         var offsetX = _.isUndefined(label.offsetX) ? 0 : label.offsetX;
         var offsetY = _.isUndefined(label.offsetY) ? 0 : label.offsetY;
@@ -1040,9 +1076,17 @@ GraphVis = function (renderer, options) {
         var color = label.color || nodeCircleColor;
         var borderColor = label.borderColor || nodeCircleBorderColor;
         var opacity = _.isUndefined(label.opacity) ? nodeCircleOpacity : description.opacity;
-        var hoverText = label.hoverText;
+        var hoverText = label.hoverText || null;
         
         var eventHandlers = {};
+    
+        var result = new LabelText(id, null);
+        result.updateProperties({
+            x: x,
+            y: y,
+            
+        });
+        
     
         return new LabelText(id, null, label.text, x, y, offsetX, offsetY, anchor, fontSize, color, borderColor, opacity, hoverText, eventHandlers);
     }

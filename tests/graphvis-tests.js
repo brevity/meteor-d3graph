@@ -40,6 +40,14 @@ function makeLinkLine(sourceNodeCircle, targetNodeCircle, properties) {
     result.updateProperties(_.extend({}, defaults, properties));
     return result;
 }
+
+function makeLabelText(id, properties) {
+    var result = new LabelText(id, null);
+    var defaults = { text: null, x: 10, y: 10, offsetX: 1, offsetY: 1, anchor: "start", fontSize: 12, color: "#f00", borderColor: null, opacity: 1, hoverText: null, eventHandlers: {}};
+    
+    result.updateProperties(_.extend({}, defaults, properties));
+    return result;
+}
 //[cf]
 //[of]:SvgRenderer
 //[c]SvgRenderer
@@ -180,7 +188,7 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     
     var linkLine = makeLinkLine(nc1, nc2, { eventHandlers: eventHandlers });
     var clusterHull = new ClusterHull("cluster1", null, [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
-    var labelText = new LabelText("label1", null, "label text", 10, 10, 0, 0, "start", 10, "#f00", "#800", 1, "", eventHandlers);
+    var labelText = makeLabelText("label1", { text: "label text", eventHandlers: eventHandlers });
     
     svgRenderer.update([clusterHull], [linkLine], [nc1, nc2], [labelText], idScale, idScale, 1, 0);
     var link = $(containerElement.find("path.link")[0]);
