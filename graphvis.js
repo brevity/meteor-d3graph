@@ -1,23 +1,133 @@
-﻿//[of]:Renderer
+﻿//[of]:Util
+//[c]Util
+
+TypeChecker = {
+    enabled: false,
+    logToConsole: false,
+    
+    // if strongCheck is true, no properties are allowed but the ones specified.
+    checkProperties: function (object, requiredProperties, optionalProperties, strongCheck) {
+        if (!this.enabled) return;
+
+        var log = this.logToConsole ? function (m) { console.log(m); } : function () {};
+        
+        var keys = _.keys(object);
+
+        var requiredNames = _.pluck(requiredProperties, "propertyName");
+        _.each(requiredNames, function (n) { 
+            if (keys.indexOf(n) === -1) {
+                var errorMessage = "Required property '" + n + "' was not found";
+                log(errorMessage);
+                throw new Meteor.Error(errorMessage); 
+            }
+        });
+
+        if (strongCheck) {
+            var legalNames = requiredNames.concat(_.pluck(optionalProperties, "propertyName"));
+
+            _.each(keys, function (k) { 
+                if (legalNames.indexOf(k) === -1) {
+                    var errorMessage = "Property '" + k + "' is not among allowed properties";
+                    log(errorMessage);
+                    throw new Meteor.Error(errorMessage); 
+                }
+            });
+        }            
+        
+        var validators = {};
+        _.each(requiredProperties.concat(optionalProperties), function (p) { validators[p.propertyName] = p; });
+        
+        _.each(object, function (val, key) { 
+            if (!validators[key].validate(val)) {
+                var errorMessage = "Property '" + key + "' should be a " + validators[key].typeName + ". Value was: " + val;
+                log(errorMessage);
+                throw new Meteor.Error(errorMessage); 
+            }
+        });
+    },
+    
+    object: function(propertyName) {
+        return {
+            typeName: "object",
+            propertyName: propertyName,
+            validate: function (value) { return typeof value === "object";  }
+        }
+    },
+    
+    string: function(propertyName) {
+        return {
+            typeName: "string",
+            propertyName: propertyName,
+            validate: function (value) { return _.isNull(value) || typeof value === "string";  }
+        }
+    },
+    
+    number: function(propertyName) {
+        return {
+            typeName: "number",
+            propertyName: propertyName,
+            validate: function (value) { return typeof value === "number";  }
+        }
+    },
+    
+    boolean: function(propertyName) {
+        return {
+            typeName: "boolean",
+            propertyName: propertyName,
+            validate: function (value) { return typeof value === "boolean";  }
+        }
+    },
+
+    color: function(propertyName) {
+        return {
+            typeName: "color",
+            propertyName: propertyName,
+            validate: function (value) { return !_.isUndefined(value);  }   // TODO: Validate that this is indeed a color.. 
+        }
+    }
+};
+
+//[cf]
+//[of]:Renderer
 //[c]Renderer
 
 //[of]:Classes fed to renderer
 //[c]Classes fed to renderer
 
-NodeCircle = function (id, data, x, y, radius, color, borderColor, borderWidth, opacity, hoverText, fixed, eventHandlers) {
+NodeCircle = function (id, data) {
     this.id = id;
     this.data = data;
-    this.x = x; // Note: x and y are NOT scaled to screen space because they are manipulated by d3.force
-    this.y = y; // Scaling takes place in SvgRenderer.update, which is why it takes the scales as parameters.
-    this.radius = radius;
-    this.color = color;
-    this.borderColor = borderColor;
-    this.borderWidth = borderWidth;
-    this.opacity = opacity;
-    this.hoverText = hoverText;
-    this.fixed = fixed;
-    this.eventHandlers = eventHandlers;
 };
+
+// These properties must be present for rendering
+NodeCircle.prototype.propertyTypes = [
+    TypeChecker.string("id"),
+    TypeChecker.object("data"),
+    TypeChecker.number("x"), // Note: x and y are NOT scaled to screen space because they are manipulated by d3.force
+    TypeChecker.number("y"), // Scaling takes place in SvgRenderer.update, which is why it takes the scales as parameters.
+    TypeChecker.number("radius"),
+    TypeChecker.color("color"),
+    TypeChecker.color("borderColor"),
+    TypeChecker.number("borderWidth"),
+    TypeChecker.number("opacity"),
+    TypeChecker.string("hoverText"),
+    TypeChecker.boolean("fixed"),
+    TypeChecker.object("eventHandlers")
+];
+
+// These are added to nodes by d3.force, so we should allow them
+NodeCircle.prototype.optionalPropertyTypes = [
+    TypeChecker.number("index"), 
+    TypeChecker.number("px"), 
+    TypeChecker.number("py"), 
+    TypeChecker.number("weight")
+];
+
+// Update certain properties on the NodeCircle. Type checking makes sure no unknown properties are added (if it's enabled)
+NodeCircle.prototype.updateProperties = function (properties) {
+    TypeChecker.checkProperties(properties, [], this.propertyTypes, true);
+    _.extend(this, properties);
+}
 
 LinkLine = function (id, data, source, target, width, color, opacity, marker, curvature, dashPattern, hoverText, eventHandlers) {
     this.id = id;
@@ -477,6 +587,10 @@ SvgRenderer = function (containerElement, options) {
         //[of]:    Nodes
         //[c]Nodes
         
+        if (TypeChecker.enabled) {
+            _.each(nodeCircles, function (nc) { TypeChecker.checkProperties(nc, nc.propertyTypes, nc.optionalPropertyTypes, true); });
+        }
+        
         var node = layers.nodes.selectAll("circle.node")
             .data(nodeCircles, function (d) { return d.id; });
         
@@ -508,6 +622,7 @@ SvgRenderer = function (containerElement, options) {
         
         node.select("title")
             .text(function (d) { return d.hoverText; });    
+        
         //[cf]
         //[of]:    Labels
         //[c]Labels
@@ -611,6 +726,10 @@ SvgRenderer = function (containerElement, options) {
         //[cf]
         //[of]:    Nodes
         //[c]Nodes
+        
+        if (TypeChecker.enabled) {
+            _.each(nodeCircles, function (nc) { TypeChecker.checkProperties(nc, nc.propertyTypes, nc.optionalPropertyTypes, true); });
+        }
         
         var node = layers.nodes.selectAll("circle.node")
             .data(nodeCircles, function (d) { return d.id; });
@@ -770,7 +889,8 @@ defaultGraphVisOptions = {
         borderWidth: 2,
         opacity: 1,
         hoverText: null,
-        label: null
+        label: null,
+        fixed: false
     },
     describeVisNode: null,
 
@@ -788,11 +908,13 @@ defaultGraphVisOptions = {
     // Collapsed clusters become node circles
     defaultCollapsedClusterDescription: {
         radius: 20,
-        color: "#a88",
-        borderColor: "#633",
+        color: "#aaa",
+        borderColor: "#fff",
+        borderWidth: 2,
         opacity: 1,
         hoverText: null,
-        label: null
+        label: null,
+        fixed: false
     },
     describeCollapsedCluster: defaultCollapsedClusterDescriber,
 
@@ -894,44 +1016,51 @@ GraphVis = function (renderer, options) {
     //[of]:    function nodeCircleAndLabelTextFromVisNode(visNode) {
     function nodeCircleAndLabelTextFromVisNode(visNode) {
         var nodeCircle, labelText;
+        var id = visNode.id;
     
-        var oldNodeCircle = _.find(nodeCircles, function (nodeCircle) { return nodeCircle.id === visNode.id; });
+        var oldNodeCircle = _.find(nodeCircles, function (nc) { return nc.id === id; });
         if (oldNodeCircle)
             nodeCircle = oldNodeCircle;
-        else
-            nodeCircle = new NodeCircle(visNode.id, visNode, null, null, 10, "#888", "#333", 3, 1, null, false, {});
+        else {
+            nodeCircle = new NodeCircle(id, visNode);
+    
+            nodeCircle.eventHandlers = {};    
+            if (options.onNodeClick) { nodeCircle.eventHandlers.click = options.onNodeClick; }
+            if (options.onNodeDoubleClick) { nodeCircle.eventHandlers.dblclick = options.onNodeDoubleClick; }
+            if (options.onNodeMouseOver) { nodeCircle.eventHandlers.mouseover = options.onNodeMouseOver; }
+            if (options.onNodeMouseOut) { nodeCircle.eventHandlers.mouseout = options.onNodeMouseOut; }
+            if (options.onNodeDragStart) { nodeCircle.eventHandlers.dragstart = options.onNodeDragStart; }
+        }
+    
+        var dynamicDescription = options.describeVisNode ? options.describeVisNode(visNode, radiusFactor) : {};
+        var description = _.extend({}, options.defaultNodeDescription, dynamicDescription);
     
         if (!_.isNumber(nodeCircle.x) || !_.isNumber(nodeCircle.y)) {
-            var w = renderer.width();
-            var h = renderer.height();
-            nodeCircle.x = w / 2 + (Math.random() * (w / 2) - w / 4);
-            nodeCircle.y = h / 2 + (Math.random() * (h / 2) - h / 4);
-        }
-    
-        if (options.describeVisNode) {
-            var description = options.describeVisNode(visNode, radiusFactor);
+            if (description.x)
+                nodeCircle.x = description.x;
+            else {
+                var w = renderer.width();
+                nodeCircle.x = w / 2 + (Math.random() * (w / 2) - w / 4);
+            }
             
-            if (_.isNumber(description.x)) nodeCircle.x = description.x;
-            if (_.isNumber(description.y)) nodeCircle.y = description.y;
-            if (!_.isUndefined(description.fixed)) nodeCircle.fixed = description.fixed;
-            
-            if (_.isNumber(description.radius)) nodeCircle.radius = description.radius;
-            if (description.color) nodeCircle.color = description.color;
-            if (description.borderColor) nodeCircle.borderColor = description.borderColor;
-            if (description.borderWidth) nodeCircle.borderWidth = description.borderWidth;
-            if (_.isNumber(description.opacity)) nodeCircle.opacity = description.opacity;
-            if (description.hoverText) nodeCircle.hoverText = description.hoverText;
-            
-            if (description.label) {
-                labelText = labelTextFromLabelDescription(description.label, nodeCircle.id, nodeCircle.x, nodeCircle.y, nodeCircle.color, nodeCircle.borderColor, nodeCircle.opacity);
+            if (description.y) 
+                nodeCircle.y = description.y;
+            else {
+                var h = renderer.height();
+                nodeCircle.y = h / 2 + (Math.random() * (h / 2) - h / 4);
             }
         }
-        
-        if (options.onNodeClick) { nodeCircle.eventHandlers.click = options.onNodeClick; }
-        if (options.onNodeDoubleClick) { nodeCircle.eventHandlers.dblclick = options.onNodeDoubleClick; }
-        if (options.onNodeMouseOver) { nodeCircle.eventHandlers.mouseover = options.onNodeMouseOver; }
-        if (options.onNodeMouseOut) { nodeCircle.eventHandlers.mouseout = options.onNodeMouseOut; }
-        if (options.onNodeDragStart) { nodeCircle.eventHandlers.dragstart = options.onNodeDragStart; }
+    
+        if (!_.isUndefined(description.label)) {
+    
+            // It might be defined, but still null so check for that as well.
+            if (!_.isNull(description.label))
+                labelText = labelTextFromLabelDescription(description.label, id, nodeCircle.x, nodeCircle.y, description.color, description.borderColor, description.opacity);
+    
+            delete description.label;
+        }
+    
+        nodeCircle.updateProperties(description);
     
         return {
             nodeCircle: nodeCircle,
@@ -941,38 +1070,62 @@ GraphVis = function (renderer, options) {
     //[cf]
     //[of]:    function nodeCircleAndLabelTextFromCollapsedCluster(visCluster, clusterVisNodes) {
     function nodeCircleAndLabelTextFromCollapsedCluster(visCluster, clusterVisNodes, clusterVisLinks) {
+        var nodeCircle, labelText;
         var id = "placeholder-" + visCluster.id;
-        var radius = 20;
-        var color = "#333";
-        var borderColor = "#000";
-        var borderWidth = 3;
-        var opacity = 1;
-        var hoverText = "";
     
-        var oldNodeCircle = _.find(nodeCircles, function (nodeCircle) { return nodeCircle.id === id; });
-        var w = renderer.width();
-        var h = renderer.height();
-        x = oldNodeCircle ? oldNodeCircle.x : (w / 2 + (Math.random() * (w / 2) - w / 4));
-        y = oldNodeCircle ? oldNodeCircle.y : (h / 2 + (Math.random() * (h / 2) - h / 4));
-        
-        var data = {
-            visCluster: visCluster,
-            visNodes: clusterVisNodes,
-            visLinks: clusterVisLinks
-        };
-        
-        var eventHandlers = {
-            "dblclick": function (d) {  
-                visCluster.isCollapsed = false;
-                self.update();
+        var oldNodeCircle = _.find(nodeCircles, function (nc) { return nc.id === id; });
+        if (oldNodeCircle)
+            nodeCircle = oldNodeCircle;
+        else {
+            nodeCircle = new NodeCircle(id, { visCluster: visCluster, visNodes: clusterVisNodes, visLinks: clusterVisLinks });
+    
+            nodeCircle.eventHandlers = {};    
+            if (options.onClusterNodeClick) { nodeCircle.eventHandlers.click = options.onClusterNodeClick; }
+            
+            if (options.onClusterNodeDoubleClick) { 
+                nodeCircle.eventHandlers.dblclick = options.onClusterNodeDoubleClick; 
+            } else {
+                nodeCircle.eventHandlers.dblclick = function (d) { visCluster.isCollapsed = false; self.update(); }
             }
-        };
-        
-        var nodeCircle = new NodeCircle(id, data, x, y, radius, color, borderColor, borderWidth, opacity, hoverText, false, eventHandlers);
-        
+            
+            if (options.onClusterNodeMouseOver) { nodeCircle.eventHandlers.mouseover = options.onClusterNodeMouseOver; }
+            if (options.onClusterNodeMouseOut) { nodeCircle.eventHandlers.mouseout = options.onClusterNodeMouseOut; }
+            if (options.onClusterNodeDragStart) { nodeCircle.eventHandlers.dragstart = options.onClusterNodeDragStart; }
+        }
+    
+        var dynamicDescription = options.describeCollapsedCluster ? options.describeCollapsedCluster(visCluster, radiusFactor) : {};
+        var description = _.extend({}, options.defaultCollapsedClusterDescription, dynamicDescription);
+    
+        if (!_.isNumber(nodeCircle.x) || !_.isNumber(nodeCircle.y)) {
+            if (description.x)
+                nodeCircle.x = description.x;
+            else {
+                var w = renderer.width();
+                nodeCircle.x = w / 2 + (Math.random() * (w / 2) - w / 4);
+            }
+            
+            if (description.y) 
+                nodeCircle.y = description.y;
+            else {
+                var h = renderer.height();
+                nodeCircle.y = h / 2 + (Math.random() * (h / 2) - h / 4);
+            }
+        }
+    
+        if (!_.isUndefined(description.label)) {
+    
+            // It might be defined, but still null so check for that as well.
+            if (!_.isNull(description.label))
+                labelText = labelTextFromLabelDescription(description.label, id, nodeCircle.x, nodeCircle.y, description.color, description.borderColor, description.opacity);
+    
+            delete description.label;
+        }
+    
+        nodeCircle.updateProperties(description);
+    
         return {
             nodeCircle: nodeCircle,
-            labelText: null
+            labelText: labelText
         };
     }
     //[cf]

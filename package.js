@@ -30,6 +30,8 @@ Package.on_use(function(api, where) {
         api.export("autoRadiusScale");
         api.export("gradientScale");
 
+        api.export("TypeChecker");
+
         // for old compatibility
         api.export("d3treelayout");
     }

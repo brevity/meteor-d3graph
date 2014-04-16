@@ -1,5 +1,8 @@
 var testLevel = "meteor-d3graph tests - ";
 
+TypeChecker.enabled = true;
+TypeChecker.logToConsole = true;
+
 //[of]:Helpers
 //[c]Helpers
 
@@ -20,6 +23,14 @@ function makeMockRenderer() {
         update: makeMockFunction(["clusterHulls", "linkLines", "nodeCircles", "labelTexts", "xScale", "yScale", "radiusFactor", "transitionDuration"]),
         updatePositions: makeMockFunction(["clusterHulls", "linkLines", "nodeCircles", "labelTexts", "xScale", "yScale", "radiusFactor"])
     };
+}
+
+function makeNodeCircle(id, properties) {
+    var result = new NodeCircle(id, properties ? properties.data : null);
+    var defaults = { data: null, x: 10, y: 10, radius: 5, color: "#f00", borderColor: "#800", borderWidth: 3, opacity: 1, hoverText: "Node hover-text", fixed: false, eventHandlers: {}};
+    
+    result.updateProperties(_.extend({}, defaults, properties));
+    return result;
 }
 //[cf]
 //[of]:SvgRenderer
@@ -50,9 +61,7 @@ Tinytest.addAsync(testLevel + "Cluster hull test", function (test, next) {
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var visCluster = new VisCluster("cluster1", null, false);
-    var visNode = new VisNode("node1");
-    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "Node hover-text", false, {}); 
+    var nodeCircle = makeNodeCircle("node1", { x: 10, y: 10 }); 
     var clusterHull = new ClusterHull("cluster1", null, [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
     
     // Execute
@@ -79,8 +88,8 @@ Tinytest.addAsync(testLevel + "Link test", function (test, next) {
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {}); 
-    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 3, 1, "", false, {}); 
+    var node1 = makeNodeCircle("node1", { x: 10, y: 10, radius: 5 });
+    var node2 = makeNodeCircle("node2", { x: 20, y: 20, radius: 5 });
     
     var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, 0, null, "Hover text", {});
     
@@ -109,7 +118,7 @@ Tinytest.addAsync(testLevel + "Node test", function (test, next) {
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "Node hover-text", false, {}); 
+    var nodeCircle = makeNodeCircle("node1"); 
     
     // Execute
     svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 1, 0);
@@ -137,7 +146,7 @@ Tinytest.add(testLevel + "Node event handler test", function (test) {
     var success = false;
     var nodeCircle;
     var eventHandlers = { "click" : function (d) { success = d === nodeCircle; } };
-    nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, eventHandlers);
+    nodeCircle = makeNodeCircle("node1", { eventHandlers: eventHandlers });
     svgRenderer.update([], [], [nodeCircle], [], idScale, idScale, 1, 0);
     var node = $(containerElement.find("circle.node")[0]);
     
@@ -158,8 +167,8 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     var clickCount = 0;
     var eventHandlers = { "click" : function (d) { clickCount += 1; } };
     
-    var nc1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {});
-    var nc2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {});
+    var nc1 = makeNodeCircle("node1");
+    var nc2 = makeNodeCircle("node2");
     
     var linkLine = new LinkLine("link1", null, nc1, nc2, 1, "#f00", 1, false, 0, null, "", eventHandlers);
     var clusterHull = new ClusterHull("cluster1", null, [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
@@ -186,8 +195,8 @@ Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {}); 
-    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 3, 1, "", false, {}); 
+    var node1 = makeNodeCircle("node1");
+    var node2 = makeNodeCircle("node2");
     
     var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, 0, null, "Hover text", {});
     
@@ -218,8 +227,8 @@ Tinytest.addAsync(testLevel + "Link marker opacity test", function (test, next) 
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {}); 
-    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 3, 1, "", false, {}); 
+    var node1 = makeNodeCircle("node1");
+    var node2 = makeNodeCircle("node2");
     
     var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 0.7, true, 0, null, "Hover text", {});
     
@@ -253,10 +262,10 @@ Tinytest.addAsync(testLevel + "Click/double-click test", function (test, next) {
     var events = { n1: [], n2: [], n3: [], n4: [] };
     function storeEvent(eventName, element) { events[element].push(eventName); }
     
-    var n1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, { click: storeEvent.bind(null, "click", "n1") });
-    var n2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, { dblclick: storeEvent.bind(null, "dblclick", "n2")});
-    var n3 = new NodeCircle("node3", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, { click: storeEvent.bind(null, "click", "n3"), dblclick: storeEvent.bind(null, "dblclick", "n3") });
-    var n4 = new NodeCircle("node4", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, { click: storeEvent.bind(null, "click", "n4"), dblclick: storeEvent.bind(null, "dblclick", "n4") });
+    var n1 = makeNodeCircle("node1", { eventHandlers: { click: storeEvent.bind(null, "click", "n1") }});
+    var n2 = makeNodeCircle("node2", { eventHandlers:{ dblclick: storeEvent.bind(null, "dblclick", "n2")}});
+    var n3 = makeNodeCircle("node3", { eventHandlers:{ click: storeEvent.bind(null, "click", "n3"), dblclick: storeEvent.bind(null, "dblclick", "n3") }});
+    var n4 = makeNodeCircle("node4", { eventHandlers:{ click: storeEvent.bind(null, "click", "n4"), dblclick: storeEvent.bind(null, "dblclick", "n4") }});
     svgRenderer.update([], [], [n1, n2, n3], [], idScale, idScale, 1, 0);
     var n1e = $(containerElement.find("circle.node")[0]);
     var n2e = $(containerElement.find("circle.node")[1]);
@@ -293,8 +302,8 @@ Tinytest.addAsync(testLevel + "Curved links test", function (test, next) {
     var svgRenderer = new SvgRenderer(containerElement, {});
     var idScale = d3.scale.linear();
     
-    var node1 = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {}); 
-    var node2 = new NodeCircle("node2", null, 20, 20, 5, "#f00", "#800", 3, 1, "", false, {}); 
+    var node1 = makeNodeCircle("node1", { x: 10, y: 10, radius: 5 });
+    var node2 = makeNodeCircle("node2", { x: 20, y: 20, radius: 5 });
     
     var link = new LinkLine("node1->node2", null, node1, node2, 2, "#f00", 1, true, 0.5, null, "Hover text", {});
     
@@ -518,8 +527,8 @@ Tinytest.add(testLevel + "Expand cluster simple test", function (test) {
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
     
-    var node1 = new VisNode("node1", null, "cluster1", null, null);
-    var node2 = new VisNode("node2", null, "cluster1", null, null);
+    var node1 = new VisNode("node1", null, "cluster1");
+    var node2 = new VisNode("node2", null, "cluster1");
     var cluster1 = new VisCluster("cluster1", null, true);
     graphVis.update([node1, node2], [], [cluster1]);
 
