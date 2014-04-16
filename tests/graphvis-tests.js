@@ -51,9 +51,9 @@ Tinytest.addAsync(testLevel + "Cluster hull test", function (test, next) {
     var idScale = d3.scale.linear();
     
     var visCluster = new VisCluster("cluster1", null, false);
-    var visNode = new VisNode("node1", null, null, null);
+    var visNode = new VisNode("node1");
     var nodeCircle = new NodeCircle("node1", null, 10, 10, 5, "#f00", "#800", 3, 1, "Node hover-text", false, {}); 
-    var clusterHull = new ClusterHull("cluster1", null, visCluster, [visNode], [], [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
+    var clusterHull = new ClusterHull("cluster1", null, [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
     
     // Execute
     svgRenderer.update([clusterHull], [], [nodeCircle], [], idScale, idScale, 1, 0);
@@ -162,7 +162,7 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     var nc2 = new NodeCircle("node2", null, 10, 10, 5, "#f00", "#800", 3, 1, "", false, {});
     
     var linkLine = new LinkLine("link1", null, nc1, nc2, 1, "#f00", 1, false, 0, null, "", eventHandlers);
-    var clusterHull = new ClusterHull("cluster1", null, null, [], [], [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
+    var clusterHull = new ClusterHull("cluster1", null, [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
     var labelText = new LabelText("label1", null, "label text", 10, 10, 0, 0, "start", 10, "#f00", "#800", 1, "", eventHandlers);
     
     svgRenderer.update([clusterHull], [linkLine], [nc1, nc2], [labelText], idScale, idScale, 1, 0);
@@ -401,8 +401,8 @@ Tinytest.add(testLevel + "Expanded cluster test", function (test) {
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
     
-    var node1 = new VisNode("node1", null, "cluster1", null, null);
-    var node2 = new VisNode("node2", null, "cluster1", null, null);
+    var node1 = new VisNode("node1", null, "cluster1");
+    var node2 = new VisNode("node2", null, "cluster1");
     var cluster1 = new VisCluster("cluster1", null, false);
 
     // Execute
@@ -420,8 +420,6 @@ Tinytest.add(testLevel + "Expanded cluster test", function (test) {
 
     var ch = mockRenderer.clusterHulls[0];
     test.equal(ch.id, "cluster1", "The hull should represent cluster1");
-    test.equal(ch.visNodes.length, 2, "The hull should contain both our nodes");
-    test.equal(ch.visNodes[0], node1, "The first visNode should be our node1");
     
     test.equal(ch.nodeCircles.length, 2, "The hull should contain the two nodeCircles");
     test.instanceOf(ch.nodeCircles[0], NodeCircle, "cluster nodecircles should actually be nodecircles");

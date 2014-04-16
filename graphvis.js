@@ -51,13 +51,9 @@ LabelText = function (id, data, text, x, y, offsetX, offsetY, anchor, fontSize, 
     this.eventHandlers = eventHandlers;
 };
 
-// This guy needs to know about visNodes and visLinks so we can reconstruct NodeCircle's and LinkLine's when it's expanded
-ClusterHull = function (id, data, visCluster, visNodes, visLinks, nodeCircles, color, borderColor, opacity, hoverText, eventHandlers) {
+ClusterHull = function (id, data, nodeCircles, color, borderColor, opacity, hoverText, eventHandlers) {
     this.id = id;
     this.data = data;
-    this.visCluster = visCluster;
-    this.visNodes = visNodes;
-    this.visLinks = visLinks;
     this.nodeCircles = nodeCircles;
     this.color = color;
     this.borderColor = borderColor;
@@ -875,7 +871,7 @@ GraphVis = function (renderer, options) {
             }
         };
     
-        return new ClusterHull(visCluster.id, visCluster, visCluster, [], [], [], color, borderColor, opacity, hoverText, eventHandlers);
+        return new ClusterHull(visCluster.id, visCluster, [], color, borderColor, opacity, hoverText, eventHandlers);
     }
     
     //[cf]
@@ -982,11 +978,11 @@ GraphVis = function (renderer, options) {
     //[cf]
     //[of]:    function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {
     function linkLineFromVisLinkAndNodeCircles(visLink, sourceNodeCircle, targetNodeCircle) {
-        var description = _.clone(options.defaultLinkDescription);
+        var description = options.defaultLinkDescription;
     
         if (options.describeVisLink) {
             var d = options.describeVisLink(visLink, sourceNodeCircle, targetNodeCircle, radiusFactor);
-            description = _.extend(description, d);
+            description = _.extend({}, description, d);
         }
     
         var linkLine = new LinkLine(sourceNodeCircle.id + "->" + targetNodeCircle.id, 
@@ -1032,12 +1028,13 @@ GraphVis = function (renderer, options) {
     }
     //[cf]
 
-    //[of]:    this.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration) {
-    this.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration) {
+    //[of]:    this.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration, updateType) {
+    this.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration, updateType) {
         if (newVisNodes) visNodes = newVisNodes;
         if (newVisLinks) visLinks = newVisLinks;
         if (newVisClusters) visClusters = newVisClusters;
         if (_.isUndefined(transitionDuration)) transitionDuration = 250;
+        if (!updateType) updateType = "update";
     
         if (options.onUpdatePreProcess) {
             var params = {
@@ -1080,7 +1077,6 @@ GraphVis = function (renderer, options) {
                     var nodeCombination = nodeCircleAndLabelTextFromVisNode(visNode);
                     var nodeCircle = nodeCombination.nodeCircle;
                     newNodeCircles.push(nodeCircle);
-                    clusterHull.visNodes.push(visNode);
                     clusterHull.nodeCircles.push(nodeCircle);
         
                     if (nodeCombination.labelText)
@@ -1183,7 +1179,7 @@ GraphVis = function (renderer, options) {
                 transitionDuration: transitionDuration 
             };
     
-            options.onUpdatePreRender(params, "update");
+            options.onUpdatePreRender(params, updateType);
     
             clusterHulls = params.clusterHulls;
             linkLines = params.linkLines;
