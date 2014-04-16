@@ -94,15 +94,15 @@ TypeChecker = {
 //[of]:Classes fed to renderer
 //[c]Classes fed to renderer
 
-NodeCircle = function (id, data) {
+NodeCircle = function (id, visData) {
     this.id = id;
-    this.data = data;
+    this.visData = visData;
 };
 
 // These properties must be present for rendering
 NodeCircle.prototype.propertyTypes = [
     TypeChecker.string("id"),
-    TypeChecker.object("data"),
+    TypeChecker.object("visData"),  // This field can contain a VisNode or a VisCluster.
     TypeChecker.number("x"), // Note: x and y are NOT scaled to screen space because they are manipulated by d3.force
     TypeChecker.number("y"), // Scaling takes place in SvgRenderer.update, which is why it takes the scales as parameters.
     TypeChecker.number("radius"),
@@ -1384,7 +1384,7 @@ GraphVis = function (renderer, options) {
             if (d.id.indexOf("placeholder") === 0) return;
             //if (!d.data.clusterId) return;
             
-            var centralClusterNode = _.find(nodeCircles, function (nc) { return nc.data.clusterId === d.data.clusterId; }); // For now, just use the first one found
+            var centralClusterNode = _.find(nodeCircles, function (nc) { return nc.visData.clusterId === d.data.clusterId; }); // For now, just use the first one found
             if (centralClusterNode === d) return;
             var x = d.x - centralClusterNode.x,
                 y = d.y - centralClusterNode.y,
@@ -1419,7 +1419,7 @@ GraphVis = function (renderer, options) {
                     var x = d.x - quad.point.x,
                         y = d.y - quad.point.y,
                         l = Math.sqrt(x * x + y * y),
-                        r = ((d.radius + quad.point.radius + (d.data.clusterId === quad.point.data.clusterId ? padding : clusterPadding)) / zoomBehavior.scale()) * radiusFactor;
+                        r = ((d.radius + quad.point.radius + (d.visData.clusterId === quad.point.visData.clusterId ? padding : clusterPadding)) / zoomBehavior.scale()) * radiusFactor;
     
                     if (l < r) {
                         l = (l - r) / l * alpha;

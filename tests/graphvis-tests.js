@@ -26,8 +26,8 @@ function makeMockRenderer() {
 }
 
 function makeNodeCircle(id, properties) {
-    var result = new NodeCircle(id, properties ? properties.data : null);
-    var defaults = { data: null, x: 10, y: 10, radius: 5, color: "#f00", borderColor: "#800", borderWidth: 3, opacity: 1, hoverText: "Node hover-text", fixed: false, eventHandlers: {}};
+    var result = new NodeCircle(id);
+    var defaults = { visData: null, x: 10, y: 10, radius: 5, color: "#f00", borderColor: "#800", borderWidth: 3, opacity: 1, hoverText: "Node hover-text", fixed: false, eventHandlers: {}};
     
     result.updateProperties(_.extend({}, defaults, properties));
     return result;
@@ -400,8 +400,8 @@ Tinytest.add(testLevel + "Collapsed cluster test", function (test) {
     
     var nc = mockRenderer.nodeCircles[0];
     test.equal(nc.id, "placeholder-cluster1", "The node circle should be the placeholder for cluster1");
-    test.equal(nc.data.visCluster, cluster1, "Data for the placeholder node should contain the actual visCluster");
-    test.equal(nc.data.visNodes.length, 2, "Data for the placeholder node should contain the two visNodes");
+    test.equal(nc.visData.visCluster, cluster1, "Data for the placeholder node should contain the actual visCluster");
+    test.equal(nc.visData.visNodes.length, 2, "Data for the placeholder node should contain the two visNodes");
 });
 //[cf]
 //[of]:Tinytest.add(testLevel + "Expanded cluster test", function (test) {
