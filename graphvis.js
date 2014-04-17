@@ -98,7 +98,7 @@ TypeChecker = {
 //[c]NodeCircle
 
 NodeCircle = function (id, visData) {
-    this.id = id;
+    this.id = id.toString();
     this.visData = visData;
 };
 
@@ -136,7 +136,7 @@ NodeCircle.prototype.updateProperties = function (properties) {
 //[c]LinkLine
 
 LinkLine = function (id, source, target, visData) {
-    this.id = id;
+    this.id = id.toString();
     this.source = source;
     this.target = target;
     this.visData = visData;
@@ -169,7 +169,7 @@ LinkLine.prototype.updateProperties = function (properties) {
 //[c]LabelText
 
 LabelText = function (id, data) {
-    this.id = id;
+    this.id = id.toString();
     this.data = data;
 };
 
@@ -202,7 +202,7 @@ LabelText.prototype.updateProperties = function (properties) {
 //[c]ClusterHull
 
 ClusterHull = function (id, data, nodeCircles, color, borderColor, opacity, hoverText, eventHandlers) {
-    this.id = id;
+    this.id = id.toString();
     this.data = data;
     this.nodeCircles = nodeCircles;
     this.color = color;
@@ -260,9 +260,19 @@ SvgRenderer = function (containerElement, options) {
         var tx = xScale(d.target.x);
         var ty = yScale(d.target.y);
     
+        var sr = (d.source.radius + d.source.borderWidth) * radiusFactor,
+            tr = (d.target.radius + d.target.borderWidth) * radiusFactor,
+            dx = tx - sx,
+            dy = ty - sy,
+            dr = Math.sqrt(dx * dx + dy * dy) || 0.001,
+            xs = dir ? sx + dx * (sr / dr) : sx,
+            ys = dir ? sy + dy * (sr / dr) : sy,
+            xt = dir ? tx - dx * (tr / dr) : tx,
+            yt = dir ? ty - dy * (tr / dr) : ty;
+        
         if (d.curvature === 0) {
             if (sx === tx && sy === ty)
-                return null;
+                return "M " + xs + " " + ys + " A 10 10 0 1 " + (xt > xs ? "1" : "0") + " " + (xt + 1) + " " + (yt + 1);
     
             var sr = (d.source.radius + d.source.borderWidth) * radiusFactor;
             var tr = (d.target.radius + d.target.borderWidth) * radiusFactor;
@@ -289,16 +299,6 @@ SvgRenderer = function (containerElement, options) {
             //[c]Original curve
             
             var dir = true;
-            
-            var sr = (d.source.radius + d.source.borderWidth) * radiusFactor,
-                tr = (d.target.radius + d.target.borderWidth) * radiusFactor,
-                dx = tx - sx,
-                dy = ty - sy,
-                dr = Math.sqrt(dx * dx + dy * dy) || 0.001,
-                xs = dir ? sx + dx * (sr / dr) : sx,
-                ys = dir ? sy + dy * (sr / dr) : sy,
-                xt = dir ? tx - dx * (tr / dr) : tx,
-                yt = dir ? ty - dy * (tr / dr) : ty;
             
             if(xs == xt && ys == yt)  // loop it
                 return "M " + xs + " " + ys + " A 10 10 0 1 " + (xt > xs ? "1" : "0") + " " + (xt + 1) + " " + (yt + 1);

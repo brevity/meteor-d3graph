@@ -1,6 +1,6 @@
 var testLevel = "meteor-d3graph tests - ";
-var soloTest;
-//soloTest = 23;    // Set this to a number to run only that test
+var soloTest = null;    // Set to a number to run only that particular test
+var logTestHeader = false;  // Set to true to log a header for each started test.
 
 TypeChecker.enabled = true;
 TypeChecker.logToConsole = true;
@@ -56,13 +56,22 @@ function addTest(name, isAsync, testFunction) {
     testCounter += 1;
 
     // If we're soloing a test, skip the others.
-    if (!_.isUndefined(soloTest) && soloTest !== testCounter - 1)
+    if (!_.isNull(soloTest) && soloTest !== testCounter - 1)
         return;
 
+    var f = testFunction;
+    
+    if (logTestHeader) {
+        f = function (test, next) { 
+            console.log("=========== " + fullName); 
+            testFunction(test, next); 
+        };
+    }
+
     if (isAsync)
-        Tinytest.addAsync(fullName, testFunction);
+        Tinytest.addAsync(fullName, f);
     else
-        Tinytest.add(fullName, testFunction);
+        Tinytest.add(fullName, f);
 }
 //[cf]
 //[of]:SvgRenderer
@@ -206,7 +215,7 @@ addTest("Link, cluster and label event handlers test", false, function (test) {
     var linkLine = makeLinkLine(nc1, nc2, { eventHandlers: eventHandlers });
     var clusterHull = new ClusterHull("cluster1", null, [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
     var labelText = makeLabelText("label1", { text: "label text", eventHandlers: eventHandlers });
-    
+
     svgRenderer.update([clusterHull], [linkLine], [nc1, nc2], [labelText], idScale, idScale, 1, 0);
     var link = $(containerElement.find("path.link")[0]);
     var cluster = $(containerElement.find("path.cluster")[0]);
@@ -351,7 +360,7 @@ addTest("Curved links test", true, function (test, next) {
         var link = $(links[0]);
         test.equal(link.attr("data-id"), "node1->node2", "Link should have the ID we gave it");
         test.equal(link.css("stroke"), "rgb(255, 0, 0)", "Link should have the color we gave it");
-        test.equal(link.attr("d"), "M 14.17164470259329 16.826227396983295 A 14.142135623730951 14.142135623730951 0 0 0 13.173772603016717 15.828355297406691", "Link path should be a curved line from node1 to node2");
+        test.equal(link.attr("d"), "M 16.826227396983295 14.171644702593289 A 14.142135623730951 14.142135623730951 0 0 1 15.828355297406702 13.173772603016708", "Link path should be a curved line from node1 to node2");
         next();
     }, 20);
 });
