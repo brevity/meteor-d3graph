@@ -1024,7 +1024,7 @@ GraphVis = function (renderer, options) {
             if (options.updateOnlyPositionsOnZoom)
                 self.updatePositions("zoom");
             else
-                self.update(null, null, null, 0);
+                self.update(null, null, null, 0, "zoom");
 
             if (options.enableForce && force)
                 force.resume();
@@ -1287,7 +1287,7 @@ GraphVis = function (renderer, options) {
                 transitionDuration: transitionDuration
             };
             
-            options.onUpdatePreProcess(params, "update");
+            options.onUpdatePreProcess(params, updateType);
             
             visNodes = params.visNodes;
             visLinks = params.visLinks;
