@@ -1,4 +1,6 @@
 var testLevel = "meteor-d3graph tests - ";
+var soloTest;
+//soloTest = 23;    // Set this to a number to run only that test
 
 TypeChecker.enabled = true;
 TypeChecker.logToConsole = true;
@@ -48,14 +50,29 @@ function makeLabelText(id, properties) {
     result.updateProperties(_.extend({}, defaults, properties));
     return result;
 }
+
+function addTest(name, isAsync, testFunction) {
+    var fullName = testLevel + name + " (#" + testCounter + ")";
+    testCounter += 1;
+
+    // If we're soloing a test, skip the others.
+    if (!_.isUndefined(soloTest) && soloTest !== testCounter - 1)
+        return;
+
+    if (isAsync)
+        Tinytest.addAsync(fullName, testFunction);
+    else
+        Tinytest.add(fullName, testFunction);
+}
 //[cf]
 //[of]:SvgRenderer
 //[c]SvgRenderer
 
-var testLevel = "meteor-d3graph tests - SvgRenderer - ";
+testLevel = "meteor-d3graph tests - SvgRenderer - ";
+testCounter = 1;
 
-//[of]:Tinytest.add(testLevel + "Constructor test", function (test) {
-Tinytest.add(testLevel + "Constructor test", function (test) {
+//[of]:addTest("Constructor test", function (test) {
+addTest("Constructor test", false, function (test) {
     // Setup
     var containerElement = $("<div />");
     
@@ -70,8 +87,8 @@ Tinytest.add(testLevel + "Constructor test", function (test) {
 });
 
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "Cluster hull test", function (test, next) {
-Tinytest.addAsync(testLevel + "Cluster hull test", function (test, next) {
+//[of]:addTest("Cluster hull test", true, function (test, next) {
+addTest("Cluster hull test", true, function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -97,8 +114,8 @@ Tinytest.addAsync(testLevel + "Cluster hull test", function (test, next) {
 });
 
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "Link test", function (test, next) {
-Tinytest.addAsync(testLevel + "Link test", function (test, next) {
+//[of]:addTest("Link test", true, function (test, next) {
+addTest("Link test", true, function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -127,8 +144,8 @@ Tinytest.addAsync(testLevel + "Link test", function (test, next) {
 
 
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "Node test", function (test, next) {
-Tinytest.addAsync(testLevel + "Node test", function (test, next) {
+//[of]:addTest("Node test", true, function (test, next) {
+addTest("Node test", true, function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -152,8 +169,8 @@ Tinytest.addAsync(testLevel + "Node test", function (test, next) {
     }, 20);
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Node event handler test", function (test) {
-Tinytest.add(testLevel + "Node event handler test", function (test) {
+//[of]:addTest("Node event handler test", function (test) {
+addTest("Node event handler test", false, function (test) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -173,8 +190,8 @@ Tinytest.add(testLevel + "Node event handler test", function (test) {
     test.isTrue(success, "The click handler should have set the success flag to true");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Link, cluster and label event handlers test", function (test) {
-Tinytest.add(testLevel + "Link, cluster and label event handlers test", function (test) {
+//[of]:addTest("Link, cluster and label event handlers test", function (test) {
+addTest("Link, cluster and label event handlers test", false, function (test) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -204,8 +221,8 @@ Tinytest.add(testLevel + "Link, cluster and label event handlers test", function
     test.equal(clickCount, 3, "We should have registered three clicks");
 });
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
-Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
+//[of]:addTest("Link marker test", true, function (test, next) {
+addTest("Link marker test", true, function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -236,8 +253,8 @@ Tinytest.addAsync(testLevel + "Link marker test", function (test, next) {
 });
 
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "Link marker opacity test", function (test, next) {
-Tinytest.addAsync(testLevel + "Link marker opacity test", function (test, next) {
+//[of]:addTest("Link marker opacity test", true, function (test, next) {
+addTest("Link marker opacity test", true, function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -268,8 +285,8 @@ Tinytest.addAsync(testLevel + "Link marker opacity test", function (test, next) 
 });
 
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "Click/double-click test", function (test, next) {
-Tinytest.addAsync(testLevel + "Click/double-click test", function (test, next) {
+//[of]:addTest("Click/double-click test", true, function (test, next) {
+addTest("Click/double-click test", true, function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -311,8 +328,8 @@ Tinytest.addAsync(testLevel + "Click/double-click test", function (test, next) {
     }, 600);
 });
 //[cf]
-//[of]:Tinytest.addAsync(testLevel + "Curved links test", function (test, next) {
-Tinytest.addAsync(testLevel + "Curved links test", function (test, next) {
+//[of]:addTest("Curved links test", true, function (test, next) {
+addTest("Curved links test", true, function (test, next) {
     // Setup
     var containerElement = $("<div />");
     var svgRenderer = new SvgRenderer(containerElement, {});
@@ -347,8 +364,8 @@ Tinytest.addAsync(testLevel + "Curved links test", function (test, next) {
 
 testLevel = "meteor-d3graph tests - GraphVis - ";
 
-//[of]:Tinytest.add(testLevel + "Constructor test", function (test) {
-Tinytest.add(testLevel + "Constructor test", function (test) {
+//[of]:addTest("Constructor test", false, function (test) {
+addTest("Constructor test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     
@@ -359,8 +376,8 @@ Tinytest.add(testLevel + "Constructor test", function (test) {
     test.ok();
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Simple update test", function (test) {
-Tinytest.add(testLevel + "Simple update test", function (test) {
+//[of]:addTest("Simple update test", false, function (test) {
+addTest("Simple update test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -377,8 +394,8 @@ Tinytest.add(testLevel + "Simple update test", function (test) {
     test.equal(nc.id, "node1", "The NodeCircle should have the same id as the VisNode");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Re-update test", function (test) {
-Tinytest.add(testLevel + "Re-update test", function (test) {
+//[of]:addTest("Re-update test", false, function (test) {
+addTest("Re-update test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -398,8 +415,8 @@ Tinytest.add(testLevel + "Re-update test", function (test) {
     testArrayProperty(test, mockRenderer.nodeCircles, "id", ["node2", "node3"]);
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Collapsed cluster test", function (test) {
-Tinytest.add(testLevel + "Collapsed cluster test", function (test) {
+//[of]:addTest("Collapsed cluster test", false, function (test) {
+addTest("Collapsed cluster test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -420,8 +437,8 @@ Tinytest.add(testLevel + "Collapsed cluster test", function (test) {
     test.equal(nc.visData.visNodes.length, 2, "Data for the placeholder node should contain the two visNodes");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Expanded cluster test", function (test) {
-Tinytest.add(testLevel + "Expanded cluster test", function (test) {
+//[of]:addTest("Expanded cluster test", false, function (test) {
+addTest("Expanded cluster test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -451,8 +468,8 @@ Tinytest.add(testLevel + "Expanded cluster test", function (test) {
     test.equal(ch.nodeCircles[0].id, "node1", "The first nodeCircle should refer to node1");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Link test", function (test) {
-Tinytest.add(testLevel + "Link test", function (test) {
+//[of]:addTest("Link test", false, function (test) {
+addTest("Link test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -473,8 +490,8 @@ Tinytest.add(testLevel + "Link test", function (test) {
     test.equal(ll.target, mockRenderer.nodeCircles[1], "The target should be node circle #2");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Zoom test", function (test) {
-Tinytest.add(testLevel + "Zoom test", function (test) {
+//[of]:addTest("Zoom test", false, function (test) {
+addTest("Zoom test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -490,8 +507,8 @@ Tinytest.add(testLevel + "Zoom test", function (test) {
     test.isTrue(mockRenderer.radiusFactor > 0.8 && mockRenderer.radiusFactor < 1.0, "radiusFactor " + mockRenderer.radiusFactor + " should have increased a bit from the initial 0.8");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Collapse cluster simple test", function (test) {
-Tinytest.add(testLevel + "Collapse cluster simple test", function (test) {
+//[of]:addTest("Collapse cluster simple test", false, function (test) {
+addTest("Collapse cluster simple test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -510,8 +527,8 @@ Tinytest.add(testLevel + "Collapse cluster simple test", function (test) {
     
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Collapse cluster test with links", function (test) {
-Tinytest.add(testLevel + "Collapse cluster test with links", function (test) {
+//[of]:addTest("Collapse cluster test with links", false, function (test) {
+addTest("Collapse cluster test with links", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -537,8 +554,8 @@ Tinytest.add(testLevel + "Collapse cluster test with links", function (test) {
 });
 
 //[cf]
-//[of]:Tinytest.add(testLevel + "Expand cluster simple test", function (test) {
-Tinytest.add(testLevel + "Expand cluster simple test", function (test) {
+//[of]:addTest("Expand cluster simple test", false, function (test) {
+addTest("Expand cluster simple test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var graphVis = new GraphVis(mockRenderer, {});
@@ -557,8 +574,8 @@ Tinytest.add(testLevel + "Expand cluster simple test", function (test) {
     
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Node describer function simple test", function (test) {
-Tinytest.add(testLevel + "Node describer function simple test", function (test) {
+//[of]:addTest("Node describer function simple test", false, function (test) {
+addTest("Node describer function simple test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     var radiusFactorFromDescription;
@@ -584,8 +601,8 @@ Tinytest.add(testLevel + "Node describer function simple test", function (test) 
     test.equal(nc.borderColor, "#800", "The NodeCircle should have have the border color that we assigned in describeVisNode");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Link describer function simple test", function (test) {
-Tinytest.add(testLevel + "Link describer function simple test", function (test) {
+//[of]:addTest("Link describer function simple test", false, function (test) {
+addTest("Link describer function simple test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     
@@ -624,8 +641,8 @@ Tinytest.add(testLevel + "Link describer function simple test", function (test) 
     test.equal(ll.width, 2, "The LinkLine should have have the thickness that we assigned in describeVisLink");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "Label test", function (test) {
-Tinytest.add(testLevel + "Label test", function (test) {
+//[of]:addTest("Label test", false, function (test) {
+addTest("Label test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     function describeVisNode(visNode, radiusFactor) {
@@ -652,8 +669,8 @@ Tinytest.add(testLevel + "Label test", function (test) {
     test.equal(lt.color, "#f00", "The LabelText should have have the color that we assigned in describeVisNode");
 });
 //[cf]
-//[of]:Tinytest.add(testLevel + "onUpdatePreProcess test", function (test) {
-Tinytest.add(testLevel + "onUpdatePreProcess test", function (test) {
+//[of]:addTest("onUpdatePreProcess test", false, function (test) {
+addTest("onUpdatePreProcess test", false, function (test) {
     // Setup
     var mockRenderer = makeMockRenderer();
     

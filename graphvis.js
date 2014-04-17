@@ -1081,14 +1081,25 @@ GraphVis = function (renderer, options) {
         var eventHandlers = {};
     
         var result = new LabelText(id, null);
-        result.updateProperties({
-            x: x,
-            y: y,
-            
-        });
-        
     
-        return new LabelText(id, null, label.text, x, y, offsetX, offsetY, anchor, fontSize, color, borderColor, opacity, hoverText, eventHandlers);
+        var defaults = { 
+            x: x, 
+            y: y, 
+            offsetX: 0,
+            offsetY: 0,
+            anchor: "start", 
+            fontSize: 14, 
+            color: nodeCircleColor, 
+            borderColor: nodeCircleBorderColor, 
+            opacity: nodeCircleOpacity,
+            hoverText: "",
+            eventHandlers: {}
+        };
+        
+        result.updateProperties(defaults);
+        result.updateProperties(label);
+    
+        return result;
     }
     //[cf]
     //[of]:    function nodeCircleAndLabelTextFromVisNode(visNode) {
