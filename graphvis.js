@@ -872,7 +872,7 @@ VisCluster = function (id, data, isCollapsed) {
 
 //[of]:defaultGraphVisOptions = {
 
-// This one simply returns interpolated values between the two nodes.
+// This describer simply returns interpolated values between the two nodes.
 // If a node is hovered, links that point to it will have markers.
 defaultLinkDescriber = function (visLink, sourceNodeCircle, targetNodeCircle, radiusFactor) {
     return {
@@ -882,9 +882,13 @@ defaultLinkDescriber = function (visLink, sourceNodeCircle, targetNodeCircle, ra
     };
 };
 
+// This describer finds a color based on the average of all the contained nodes.
+// The radius is the sum of all the contained radii.
 defaultCollapsedClusterDescriber = function () {
+    var radiusSum = 0;
+    var rSum = 0, gSum = 0, bSum = 0;
+    
     return {
-        
     }
 };
 
