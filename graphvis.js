@@ -1492,6 +1492,12 @@ GraphVis = function (renderer, options) {
                 //.chargeDistance(options.forceParameters.chargeDistance)   // This doesn't seem to be supported in this version of D3.
                 .theta(options.forceParameters.theta)
                 .gravity(options.forceParameters.gravity)
+    
+            // These properties only take effect in force.start(), so do that.
+            if (newForceParameters.hasOwnProperty("linkDistance") || 
+                newForceParameters.hasOwnProperty("linkStrength") || 
+                newForceParameters.hasOwnProperty("charge"))
+                force.start();
         }
     };
     //[cf]
