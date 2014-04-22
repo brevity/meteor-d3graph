@@ -882,17 +882,12 @@ defaultLinkDescriber = function (visLink, sourceNodeCircle, targetNodeCircle, ra
     };
 };
 
-// This describer finds a color based on the average of all the contained nodes.
-// The radius is the sum of all the contained radii.
 defaultCollapsedClusterDescriber = function () {
-    var radiusSum = 0;
-    var rSum = 0, gSum = 0, bSum = 0;
-    
-    return {
-    }
+    return {};
 };
 
 defaultExpandedClusterDescriber = function () {
+    return {};
 };
 
 defaultGraphVisOptions = {
@@ -1052,8 +1047,8 @@ GraphVis = function (renderer, options) {
         var opacity = 0.2;
         var hoverText = "";
     
-        if (options.describeVisCluster) {
-            var description = options.describeVisCluster(visCluster, [], radiusFactor); // TODO: Give nodecircles along
+        if (options.describeExpandedCluster) {
+            var description = options.describeExpandedCluster(visCluster, [], radiusFactor); // TODO: Give nodecircles along
     
             if (description.color) color = description.color;
             if (description.opacity) opacity = description.opacity;
@@ -1130,7 +1125,7 @@ GraphVis = function (renderer, options) {
     
         if (!_.isNumber(nodeCircle.x) || !_.isNumber(nodeCircle.y)) {
             if (description.x)
-                nodeCircle.x = description.x;
+                nodeCircle.x = description.x;   // This is a bit silly because it will happen in updateProperties below. However, we need it for the label which is constructed first.
             else {
                 var w = renderer.width();
                 nodeCircle.x = w / 2 + (Math.random() * (w / 2) - w / 4);
@@ -1167,9 +1162,9 @@ GraphVis = function (renderer, options) {
         var id = "placeholder-" + visCluster.id;
     
         var oldNodeCircle = _.find(nodeCircles, function (nc) { return nc.id === id; });
-        if (oldNodeCircle)
+        if (oldNodeCircle) {
             nodeCircle = oldNodeCircle;
-        else {
+        } else {
             nodeCircle = new NodeCircle(id, { visCluster: visCluster, visNodes: clusterVisNodes, visLinks: clusterVisLinks });
     
             nodeCircle.eventHandlers = {};    
@@ -1207,7 +1202,7 @@ GraphVis = function (renderer, options) {
     
         if (!_.isUndefined(description.label)) {
     
-            // It might be defined, but still null so check for that as well.
+            // It might be defined but still null so check for that as well.
             if (!_.isNull(description.label))
                 labelText = labelTextFromLabelDescription(description.label, id, nodeCircle.x, nodeCircle.y, description.color, description.borderColor, description.opacity);
     
@@ -1409,6 +1404,12 @@ GraphVis = function (renderer, options) {
         
         //[cf]
     
+        // If there is a structural difference compared to last run, and we've started the physics engine,
+        // we need to update the nodes and links on it and call force.start. 
+        var updateForce = false;
+        if (force)
+            updateForce = !_.isEqual(nodeCircles, newNodeCircles) || !_.isEqual(linkLines, newLinkLines);
+    
         nodeCircles = newNodeCircles;
         linkLines = newLinkLines;
         labelTexts = newLabelTexts;
@@ -1438,6 +1439,12 @@ GraphVis = function (renderer, options) {
             transitionDuration = params.transitionDuration;
         }
     
+        if (updateForce) {
+            force.nodes(nodeCircles);
+            force.links(linkLines);
+            force.start();
+        }
+        
         renderer.update(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration);
     };
     //[cf]
@@ -1470,6 +1477,23 @@ GraphVis = function (renderer, options) {
     
         renderer.updatePositions(clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor);
     }
+    //[cf]
+
+    //[of]:    this.updateForceDynamics(options) {
+    this.updateForceDynamics = function (options) {
+        _.extend(options.forceParameters, options);
+    
+        if (force) {
+            force
+                .linkDistance(options.forceParameters.linkDistance)
+                .linkStrength(options.forceParameters.linkStrength)
+                .friction(options.forceParameters.friction)
+                .charge(options.forceParameters.charge)
+                //.chargeDistance(options.forceParameters.chargeDistance)   // This doesn't seem to be supported in this version of D3.
+                .theta(options.forceParameters.theta)
+                .gravity(options.forceParameters.gravity)
+        }
+    };
     //[cf]
 
     //[of]:    function cluster(alpha) {
@@ -1543,7 +1567,10 @@ GraphVis = function (renderer, options) {
             lt.y = nodeCircle.y;
         });
     
-        self.updatePositions("tick");
+        if (options.updateOnlyPositionsOnTick)
+            self.updatePositions("tick");
+        else
+            self.update(null, null, null, 0, "tick");
     }
     //[cf]
 

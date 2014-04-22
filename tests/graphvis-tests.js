@@ -74,6 +74,7 @@ function addTest(name, isAsync, testFunction) {
         Tinytest.add(fullName, f);
 }
 //[cf]
+
 //[of]:SvgRenderer
 //[c]SvgRenderer
 
@@ -711,5 +712,49 @@ addTest("onUpdatePreProcess test", false, function (test) {
 
 
 //[cf]
+//[of]:Integration
+//[c]Integration
 
+testLevel = "meteor-d3graph tests - Integration - ";
+
+//[of]:addTest("Minimal integration test", false, function (test) {
+addTest("Minimal integration test", false, function (test) {
+    // Setup
+    var containerElement = $("<div />");
+    var svgRenderer = new SvgRenderer(containerElement, {});
+    
+    // Execute
+    var graphVis = new GraphVis(svgRenderer, {});
+    
+    // Verify
+    test.ok();
+});
+//[cf]
+//[of]:addTest("Integration test with a few elements", true, function (test, next) {
+addTest("Integration test with a few elements", true, function (test, next) {
+    // Setup
+    var containerElement = $("<div />");
+    var svgRenderer = new SvgRenderer(containerElement, {});
+    var graphVis = new GraphVis(svgRenderer, {});
+    
+    var node1 = new VisNode("node1");
+    var node2 = new VisNode("node2", "cluster1");
+    var link1 = new VisLink("node1", "node2");
+    var cluster1 = new VisCluster("cluster1");
+    
+    // Execute
+    graphVis.update([node1, node2], [link1], [cluster1], 0);
+    
+    // Verify
+    setTimeout(function () {
+        var nodes = containerElement.find("circle.node");
+        test.equal(nodes.length, 2, "There should be two nodes");
+
+        var node = $(nodes[0]);
+        test.equal(node.attr("data-id"), "node1", "Node should have the ID we gave it");
+        next();
+    }, 20);
+});
+//[cf]
+//[cf]
 
