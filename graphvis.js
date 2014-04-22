@@ -66,7 +66,7 @@ TypeChecker = {
         return {
             typeName: "number",
             propertyName: propertyName,
-            validate: function (value) { return typeof value === "number";  }
+            validate: function (value) { return typeof value === "number" && !isNaN(value);  }
         }
     },
     
@@ -130,6 +130,9 @@ NodeCircle.prototype.optionalPropertyTypes = [
 NodeCircle.prototype.updateProperties = function (properties) {
     TypeChecker.checkProperties(properties, [], this.propertyTypes, true);
     _.extend(this, properties);
+
+    if (isNaN(x)) x = 0;    // Do this to make sure we don't get a million console error messages.
+    if (isNaN(y)) y = 0;
 }
 //[cf]
 //[of]:LinkLine
@@ -1479,7 +1482,7 @@ GraphVis = function (renderer, options) {
     }
     //[cf]
 
-    //[of]:    this.updateForceDynamics(options) {
+    //[of]:    this.updateForceDynamics(newForceParameters) {
     this.updateForceDynamics = function (newForceParameters) {
         _.extend(options.forceParameters, newForceParameters);
     
