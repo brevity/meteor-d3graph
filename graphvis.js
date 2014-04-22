@@ -1480,8 +1480,8 @@ GraphVis = function (renderer, options) {
     //[cf]
 
     //[of]:    this.updateForceDynamics(options) {
-    this.updateForceDynamics = function (options) {
-        _.extend(options.forceParameters, options);
+    this.updateForceDynamics = function (newForceParameters) {
+        _.extend(options.forceParameters, newForceParameters);
     
         if (force) {
             force
