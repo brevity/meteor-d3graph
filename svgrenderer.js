@@ -1,5 +1,5 @@
 ﻿SvgRenderer = function (containerElement, options) {
-    var layerIds = ["clusters", "links", "nodes", "labels", "ui"];  // First one becomes the bottom layer
+    options = $.extend(true, {}, defaultSvgRendererOptions, options);
     
     var svg, defs;
     var layers = {};
@@ -296,6 +296,12 @@
             }
         });
     }
+    //[cf]
+
+    //[of]:    this.getLayer = function (name) {
+    this.getLayer = function (name) {
+        reurn layers[name];
+    };
     //[cf]
     
     //[of]:    this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration) {
@@ -620,7 +626,7 @@
         defs = svg.append("svg:defs");
                     
         layers = {};
-        _.each(layerIds, function (layerId) {
+        _.each(options.layerIds, function (layerId) {
             layers[layerId] = svg.append("svg:g")
                 .attr("id", layerId)
                 .attr("class", "layer");

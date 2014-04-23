@@ -16,6 +16,7 @@ var libFiles = [
         'viscluster.js',
         'defaultgraphvisoptions.js',
         'graphvis.js',
+        'svgrendererdefaultoptions.js',
         'svgrenderer.js',
         'autoRadiusScale.js',
         'gradientScale.js'
