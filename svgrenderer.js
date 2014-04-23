@@ -5,12 +5,9 @@
     var layers = {};
     var previousRadiusFactor;   // Used to check if we need to update sizes
     
-    var width = containerElement.width();
-    var height = containerElement.height();
-
     this.containerElement = function () { return containerElement; };
-    this.width = function () { return width; };
-    this.height = function () { return height; };
+    this.width = function () { return containerElement.width(); };
+    this.height = function () { return containerElement.height(); };
 
     //[of]:    function makeHull(d, xScale, yScale) {
     function makeHull(d, xScale, yScale, radiusFactor) {
@@ -221,9 +218,9 @@
     }
     //[cf]
     //[of]:    function getTextAnchor(labelText, xScale) {
-    function getTextAnchor(labelText, xScale) {
+    function getTextAnchor(labelText, centroidX) {
         if (labelText.anchor === "auto") {
-            return xScale(labelText.x) < width / 2 ? "end" : "start";
+            return labelText.x < centroidX ? "end" : "start";
         } else {
             return labelText.anchor;
         }
@@ -304,6 +301,8 @@
     //[of]:    this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration) {
     this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration) {
         transitionDuration = transitionDuration === undefined ? 250 : transitionDuration;
+    
+        var centroidX = d3.mean(nodeCircles, function (nc) { return nc.x; });
         
         //[of]:    Clusters
         //[c]Clusters
@@ -491,8 +490,8 @@
         label.select("text")
             .text(function (d) { return d.text; })
             .transition().duration(transitionDuration)
-            .attr("text-anchor", function (d) { return getTextAnchor(d, xScale); })
-            .attr("x", function (d) { return (getTextAnchor(d, xScale) === "end" ? -d.offsetX : d.offsetX) * radiusFactor; })
+            .attr("text-anchor", function (d) { return getTextAnchor(d, centroidX); })
+            .attr("x", function (d) { return (getTextAnchor(d, centroidX) === "end" ? -d.offsetX : d.offsetX) * radiusFactor; })
             .attr("y", function (d) { return d.offsetY * radiusFactor; })
             .style("fill", function (d) { return d.color; });
         //    .style("stroke-width", function (d) { return 0.5 * radiusFactor; })
@@ -505,6 +504,9 @@
     //[cf]
     //[of]:    this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor) {
     this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor) {
+    
+        var centroidX = d3.mean(nodeCircles, function (nc) { return nc.x; });
+    
         //[of]:    Clusters
         //[c]Clusters
         
@@ -598,8 +600,8 @@
             .attr("transform", function (d) { return "translate(" + [xScale(d.x), yScale(d.y)] + ")"; });
         
         label.select("text")
-            .attr("text-anchor", function (d) { return getTextAnchor(d, xScale); })
-            .attr("x", function (d) { return (getTextAnchor(d, xScale) === "end" ? -d.offsetX : d.offsetX) * radiusFactor; })
+            .attr("text-anchor", function (d) { return getTextAnchor(d, centroidX); })
+            .attr("x", function (d) { return (getTextAnchor(d, centroidX) === "end" ? -d.offsetX : d.offsetX) * radiusFactor; })
             .attr("y", function (d) { return d.offsetY * radiusFactor; })
             .style("font-size", function (d) { return d.fontSize * radiusFactor; });
         
@@ -612,8 +614,8 @@
     //[of]:    function initialize() {
     function initialize() {
         svg = d3.select(containerElement[0]).append("svg")
-            .attr("width", width)
-            .attr("height", height);
+            .attr("width", containerElement.width())
+            .attr("height", containerElement.height());
         
         defs = svg.append("svg:defs");
                     
