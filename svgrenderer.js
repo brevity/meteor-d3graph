@@ -308,6 +308,10 @@
         //[of]:    Clusters
         //[c]Clusters
         
+        if (TypeChecker.enabled) {
+            _.each(clusterHulls, function (ch) { TypeChecker.checkProperties(ch, ch.propertyTypes, ch.optionalPropertyTypes, true); });
+        }
+        
         var cluster = layers.clusters.selectAll("path.cluster")
             .data(clusterHulls, function (d) { return d.id; });
         

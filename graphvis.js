@@ -42,27 +42,39 @@
 
     //[of]:    function clusterHullFromVisCluster(visCluster) {
     function clusterHullFromVisCluster(visCluster) {
-        var color = "#888";
-        var borderColor = d3.rgb(color).darker(1);
-        var opacity = 0.2;
-        var hoverText = "";
+        var clusterHull;
+        var id = visCluster.id;
+        
+        var oldClusterHull = _.find(clusterHulls, function (ch) { return ch.id === id; });
+        if (oldClusterHull)
+            clusterHull = oldClusterHull;
+        else {
+            clusterHull = new ClusterHull(id, null);
     
-        if (options.describeExpandedCluster) {
-            var description = options.describeExpandedCluster(visCluster, [], radiusFactor); // TODO: Give nodecircles along
+            clusterHull.eventHandlers = {};    
+            if (options.onClusterClick) { clusterHull.eventHandlers.click = options.onClusterClick; }
     
-            if (description.color) color = description.color;
-            if (description.opacity) opacity = description.opacity;
-            if (description.hoverText) hoverText = description.hoverText;
+            if (options.onClusterDoubleClick) { 
+                clusterHull.eventHandlers.dblclick = options.onClusterDoubleClick; 
+            } else {
+                clusterHull.eventHandlers.dblclick = function (d) { 
+                    visCluster.isCollapsed = true;
+                    self.update();
+                };
+            }
+    
+            if (options.onClusterMouseOver) { clusterHull.eventHandlers.mouseover = options.onClusterMouseOver; }
+            if (options.onClusterMouseOut) { clusterHull.eventHandlers.mouseout = options.onClusterMouseOut; }
         }
     
-        var eventHandlers = {
-            "dblclick": function (d) { 
-                visCluster.isCollapsed = true;
-                self.update();
-            }
-        };
+        clusterHull.nodeCircles = [];   // Do this so we can safely push nodeCircle's in here, even if we're reusing an old ClusterHull.
     
-        return new ClusterHull(visCluster.id, visCluster, [], color, borderColor, opacity, hoverText, eventHandlers);
+        var dynamicDescription = options.describeExpandedCluster ? options.describeExpandedCluster(visCluster, [/* TODO: nodecircles */], radiusFactor) : {};
+        var description = _.extend({}, options.defaultExpandedClusterDescription, dynamicDescription);
+    
+        clusterHull.updateProperties(description);
+    
+        return clusterHull;
     }
     
     //[cf]

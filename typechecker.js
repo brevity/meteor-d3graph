@@ -43,44 +43,52 @@
         });
     },
     
-    object: function(propertyName) {
+    object: function (propertyName) {
         return {
             typeName: "object",
             propertyName: propertyName,
             validate: function (value) { return typeof value === "object";  }
-        }
+        };
+    },
+
+    array: function (propertyName) {
+        return {
+            typeName: "array",
+            propertyName: propertyName,
+            validate: function (value) { return value instanceof Array; }
+        };
     },
     
-    string: function(propertyName) {
+    string: function (propertyName) {
         return {
             typeName: "string",
             propertyName: propertyName,
             validate: function (value) { return _.isNull(value) || typeof value === "string";  }
-        }
+        };
     },
     
-    number: function(propertyName) {
+    number: function (propertyName) {
         return {
             typeName: "number",
             propertyName: propertyName,
             validate: function (value) { return typeof value === "number" && !isNaN(value);  }
-        }
+        };
     },
     
-    boolean: function(propertyName) {
+    boolean: function (propertyName) {
         return {
             typeName: "boolean",
             propertyName: propertyName,
             validate: function (value) { return typeof value === "boolean";  }
-        }
+        };
     },
 
-    color: function(propertyName) {
+    color: function (propertyName) {
         return {
             typeName: "color",
             propertyName: propertyName,
             validate: function (value) { return !_.isUndefined(value);  }   // TODO: Validate that this is indeed a color.. 
-        }
+        };
     }
 };
 
