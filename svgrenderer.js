@@ -300,7 +300,7 @@
 
     //[of]:    this.getLayer = function (name) {
     this.getLayer = function (name) {
-        reurn layers[name];
+        return layers[name];
     };
     //[cf]
     
