@@ -1,4 +1,5 @@
 var testLevel = "meteor-d3graph tests - ";
+var testCounter = 1;
 var soloTest = null;    // Set to a number to run only that particular test
 var logTestHeader = false;  // Set to true to log a header for each started test.
 
@@ -88,7 +89,6 @@ function addTest(name, isAsync, testFunction) {
 //[c]SvgRenderer
 
 testLevel = "meteor-d3graph tests - SvgRenderer - ";
-testCounter = 1;
 
 //[of]:addTest("Constructor test", function (test) {
 addTest("Constructor test", false, function (test) {
@@ -707,18 +707,6 @@ addTest("onUpdatePreProcess test", false, function (test) {
     testArrayProperty(test, mockRenderer.nodeCircles, "id", ["node1", "added node"]);
 });
 //[cf]
-
-
-
-//[c]
-//[c]Tests to add:
-//[c] - Add node to collapsed cluster
-//[c]
-
-
-
-
-
 
 //[cf]
 //[of]:Integration
