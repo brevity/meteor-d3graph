@@ -6,7 +6,17 @@ var libFiles = [
         'tipsy/tipsy.js',
         'intersect/intersect.js',
         'd3treelayout.js',
+        'typechecker.js',
+        'nodecircle.js',
+        'linkline.js',
+        'labeltext.js',
+        'clusterhull.js',
+        'visnode.js',
+        'vislink.js',
+        'viscluster.js',
+        'defaultgraphvisoptions.js',
         'graphvis.js',
+        'svgrenderer.js',
         'autoRadiusScale.js',
         'gradientScale.js'
     ];
