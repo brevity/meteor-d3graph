@@ -1,4 +1,5 @@
 var testLevel = "meteor-d3graph tests - ";
+var testCounter = 1;
 var soloTest = null;    // Set to a number to run only that particular test
 var logTestHeader = false;  // Set to true to log a header for each started test.
 
@@ -51,6 +52,15 @@ function makeLabelText(id, properties) {
     return result;
 }
 
+function makeClusterHull(id, nodeCircles, properties) {
+    var result = new ClusterHull(id, null);
+    result.nodeCircles = nodeCircles;
+    var defaults = { color: "f88", borderColor: "#844", opacity: 1, hoverText: null, eventHandlers: {} };
+    
+    result.updateProperties(_.extend({}, defaults, properties));
+    return result;
+}
+
 function addTest(name, isAsync, testFunction) {
     var fullName = testLevel + name + " (#" + testCounter + ")";
     testCounter += 1;
@@ -79,7 +89,6 @@ function addTest(name, isAsync, testFunction) {
 //[c]SvgRenderer
 
 testLevel = "meteor-d3graph tests - SvgRenderer - ";
-testCounter = 1;
 
 //[of]:addTest("Constructor test", function (test) {
 addTest("Constructor test", false, function (test) {
@@ -105,7 +114,7 @@ addTest("Cluster hull test", true, function (test, next) {
     var idScale = d3.scale.linear();
     
     var nodeCircle = makeNodeCircle("node1", { x: 10, y: 10 }); 
-    var clusterHull = new ClusterHull("cluster1", null, [nodeCircle], "f88", "#844", 1, "Cluster hover-text", {});
+    var clusterHull = makeClusterHull("cluster1", [nodeCircle]);
     
     // Execute
     svgRenderer.update([clusterHull], [], [nodeCircle], [], idScale, idScale, 1, 0);
@@ -214,7 +223,7 @@ addTest("Link, cluster and label event handlers test", false, function (test) {
     var nc2 = makeNodeCircle("node2");
     
     var linkLine = makeLinkLine(nc1, nc2, { eventHandlers: eventHandlers });
-    var clusterHull = new ClusterHull("cluster1", null, [nc1, nc2], "#f00", "#800", 1, "", eventHandlers);
+    var clusterHull = makeClusterHull("cluster1", [nc1, nc2], { eventHandlers: eventHandlers });
     var labelText = makeLabelText("label1", { text: "label text", eventHandlers: eventHandlers });
 
     svgRenderer.update([clusterHull], [linkLine], [nc1, nc2], [labelText], idScale, idScale, 1, 0);
@@ -698,18 +707,6 @@ addTest("onUpdatePreProcess test", false, function (test) {
     testArrayProperty(test, mockRenderer.nodeCircles, "id", ["node1", "added node"]);
 });
 //[cf]
-
-
-
-//[c]
-//[c]Tests to add:
-//[c] - Add node to collapsed cluster
-//[c]
-
-
-
-
-
 
 //[cf]
 //[of]:Integration

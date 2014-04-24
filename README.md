@@ -42,7 +42,7 @@ Now, the visualization is boring at this stage. We haven't told our GraphVis any
 	var link = new VisLink("node1", "node2");
 	graphVis.update([node1, node2], [link], []);
 
-This should create a graph consisting of two nodes connected by a link. Still bland looking, but at least it's a small graph. You might be wondering about the <code>null</code> argument for the link. That is the <code>data</code> property of the VisLink, which in this case is not used. It is however essential when we get into changing visual properties of our visualisation such as colors.
+This should create a graph consisting of two nodes connected by a link. Still bland looking, but at least it's a small graph. 
 
 Customizing appearance
 ----------------------
@@ -107,15 +107,16 @@ This should show us three dots on the screen now, two red ones and a blue one. T
 
 Nodes, Links and clusters
 -------------------------
-This library visualizes three types of data: nodes, links and clusters. The nodes are visualizes as circles. A link indicates that two nodes are connected, and is represented by a line between the two circles.
+This library visualizes three types of data: nodes, links and clusters. The nodes are visualized as circles. A link indicates that two nodes are connected, and is represented by a line between the two circles.
 
 Finally, there is a concept of clusters. Clusters are another way of indicating a relationship between a group of nodes. A node can belong to zero or one clusters. Clusters can be visualized as *collapsed* or *expanded*. Collapsed clusters are represented by a single circle. Expanded clusters show circles for all the member nodes, as well as a convex hull surrounding them to indicate the relationship.
-
+If a VisNode has a clusterId, a corresponding VisCluster *must* exist.
 
 
 Force
 -----
 It's all well and good with static nodes, but you will probably want to apply the nice D3 force. Doing that is rather simple. You call <code>GraphVis.startForce()</code>. This will start the physics simulation. It will cool down and eventually stop but you can keep it going using <code>GraphVis.resumeForce()</code>.
+The dynamics settings can be set in the <code>options.forceParameters</code>, and they can be modified afterwards by calling <code>GraphVis.updateForceDynamics</code>. 
 
 
 Events
@@ -142,6 +143,7 @@ The <code>options</code> paramter is a plain JS object. If it is not supplied, o
  * <code>enableZoom</code> - Enable zooming (*default: true*)
  * <code>enablePan</code> - Enable panning (*default: true*)
  * <code>enableForce</code> - Enable physics simulation (Note: you still need to call <code>startForce()</code> to start it) (*default: true*)
+ * <code>forceParameters</code> - object containing the parameters to d3.force. Details below.
  * <code>enableCollisionDetection</code> - Prevent nodes from colliding when force is applied (*default: true*)
  * <code>enableClusterForce</code> - Add gravity to clusters in an attempt to keep clusters separate (*default: false*)
  * <code>zoomExtent</code> - Allowed zoom range. (*default: [0.25, 4]*)
@@ -153,10 +155,21 @@ The two last properties allow you to describe your graph to more detail. However
 
 The default value for <code>zoomDensityScale</code> is <code>d3.scale.linear().domain([0.25, 4]).range([0.5, 2])</code>. This means that when the user zooms out to 0.25, radii will be 0.5 times the value from the description. You can supply any function that takes a zoom factor and returns a radius factor. This is the factor that will be applied to the "density" of the visual elements, such as radii, font size, link thickness and so on. If you set <code>zoomDensityScale</code> to <code>function () { return 1; }</code>, the density will remain constant and zooming will only cause elements to move closer to each other or further apart.
 
+The <code>forceParameters</code> property can have the following subproperties:
+
+ * <code>linkDistance</code> - [force.linkDistance](https://github.com/mbostock/d3/wiki/Force-Layout#wiki-linkDistance) (*defaut: 20*)
+ * <code>linkStrength</code> - [force.linkStrength](https://github.com/mbostock/d3/wiki/Force-Layout#wiki-linkStrength) (*default: 1*)
+ * <code>friction</code> - [force.friction](https://github.com/mbostock/d3/wiki/Force-Layout#wiki-friction) (*default: 0.9*)
+ * <code>charge</code> - [force.charge](https://github.com/mbostock/d3/wiki/Force-Layout#wiki-charge) (*default: -30*)
+ * <code>chargeDistance</code> - [force.chargeDistance](https://github.com/mbostock/d3/wiki/Force-Layout#wiki-chargeDistance) (*default: Infinity*)
+ * <code>theta</code> - [force.theta](https://github.com/mbostock/d3/wiki/Force-Layout#wiki-theta) (*default: 0.8*)
+ * <code>gravity</code> - [force.gravity](https://github.com/mbostock/d3/wiki/Force-Layout#wiki-gravity) (*default: 0.1*)
+
 ####Event Handling
 You can supply the following event handlers in <code>options</code>:
 
-
+ * <code>onUpdatePreProcess</code> - called from update() before processing vis*-elements
+ * <code>onUpdatePreRender</code> - called from update() before rendering
  * <code>onClick</code> - event handler for when the user clicks the graph
  * <code>onNodeClick</code> - event handler for node clicks
  * <code>onNodeDoubleClick</code> - event handler for node double-clicks
@@ -189,18 +202,42 @@ The <code>options</code> object allows the following properties for describing v
  * <code>describeVisNode</code> - describer function to use for nodes
  * <code>defaultLinkDescription</code> - default description for links
  * <code>describeVisLink</code> - describer function for links
- * <code>defaultClusterDescription</code> - default description for clusters
- * <code>describeVisLink</code> - describer function for links
+ * <code>defaultCollapsedClusterDescription</code> - default description for collapsed clusters
+ * <code>describeCollapsedCluster</code> - describer function for collapsed clusters
+ * <code>defaultExpandedClusterDescription</code> - default description for expanded clusters
+ * <code>describeExpandedCluster</code> - describer function for expanded clusters
 
 
 GraphVis.update
 ---------------
-<code>GraphVis.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration)</code>
+<code>GraphVis.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration, updateType)</code>
 
 The update function causes the entire graph to be updated.
 
 If arguments are supplied for <code>newVisNodes</code>, <code>newVisLinks</code> and <code>newVisClusters</code>, these will be used. Otherwise, the ones supplied from the last <code>update()</code> call will be reused.
 Specifically, <code>update</code> will turn <code>VisNode</code>'s into <code>NodeCircle</code>'s, <code>VisLink</code>'s into <code>LinkLine</code>'s and <code>VisCluster</code>'s into <code>ClusterHull</code>'s. However, clusters that have <code>isCollapsed</code> set to true will not create a cluster hull but rather a placeholder-node that represents the given cluster.
+
+If no <code>transitionDuration</code> is specified, it defaults to 250 (ms). The <code>updateType</code> argument will be passed on to the <code>onUpdatePreProcess</code> and <code>onUpdatePreRender</code> eventhandlers, if they exist. If it's not set, it defaults to "update", but it might be called internally from <code>zoom</code> or <code>tick</code> in which case <code>updateType</code> will be set to "zoom" or "tick" respectively,
+
+
+GraphVis.updatePositions
+------------------------
+<code>GraphVis.updatePositions = function (updateType)</code>
+
+This function updates positions and density-properties of the graph (i.e. radii, widths of links, font size etc.).
+The <code>updateType</code> argument will be passed on to the <code>onUpdatePreRender</code> eventhandlers, if it exists.
+
+
+GraphVis.updateForceDynamics
+----------------------------
+<code>GraphVis.updateForceDynamics(newForceParameters)</code>
+
+This function allows you to dynamically change the parameteres of the d3.force instance. The <code>newForceParameters</code> can contain one or multiple of the options in available in the <code>options.forceParameters</code> property in the <code>GraphVis</code> constructor. Only properties that are set will have an effect.
+
+This function also updates the internal <code>options</code> variable so it will work even if you haven't yet called <code>GraphVis.startForce()</code>.
+
+
+
 
 
 VisNode constructor
