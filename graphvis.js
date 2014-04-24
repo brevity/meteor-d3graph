@@ -1124,14 +1124,14 @@ GraphVis = function (renderer, options) {
         var description = _.extend({}, options.defaultNodeDescription, dynamicDescription);
     
         if (!_.isNumber(nodeCircle.x) || !_.isNumber(nodeCircle.y)) {
-            if (description.x)
+            if (description.x && !isNaN(description.x))
                 nodeCircle.x = description.x;   // This is a bit silly because it will happen in updateProperties below. However, we need it for the label which is constructed first.
             else {
                 var w = renderer.width();
                 nodeCircle.x = w / 2 + (Math.random() * (w / 2) - w / 4);
             }
             
-            if (description.y) 
+            if (description.y && !isNaN(description.y))
                 nodeCircle.y = description.y;
             else {
                 var h = renderer.height();
