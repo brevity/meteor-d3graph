@@ -237,7 +237,11 @@ This function allows you to dynamically change the parameteres of the d3.force i
 This function also updates the internal <code>options</code> variable so it will work even if you haven't yet called <code>GraphVis.startForce()</code>.
 
 
+GraphVis.zoomPan
+----------------
+<code>GraphVis.zoomPan = function (scale, translate, transitionDuration)</code>
 
+This function allows you to zoom/pan to a specific location.
 
 
 VisNode constructor
@@ -283,7 +287,14 @@ SvgRenderer constructor
 
 This is the constructor for the <code>SvgRenderer</code> class. The <code>containerElement</code> parameter should be a jQuery object of the DOM element where the graph should be rendered.
 
-At the time of writing, <code>SvgRenderer</code> has no options, so that parameter is simply reserved.
+At the time of writing, the only option allowed in the <code>options</code> parameter is <code>layerIds</code>. This is an array of strings, indicating which layers the renderer should create. The order is significant, as the first layer will be first in the DOM and hence will be the "bottom" layer. The default setting for this property is <code>["clusters", "links", "nodes", "labels", "ui"]</code>. The first four of these must exist, the "ui" layer is added as a way to add UI-elements on top of the visualization.
+
+
+SvgRenderer.getLayer
+---------------------
+<code>SvgRenderer.getLayer = function (name)</code>
+
+This method returns the D3 selection of the layer specified. This means that if you have a layer called "ui", you can apply D3 selection actions on it like this: <code>svgRenderer.getLayer("ui").append("svg:g")</code>. 
 
 
 SvgRenderer.update

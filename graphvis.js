@@ -2,6 +2,15 @@
     var self = this;
     options = $.extend(true, {}, defaultGraphVisOptions, options);
 
+    var visNodes, visLinks, visClusters;
+    
+    var clusterHulls = [];
+    var linkLines = [];
+    var nodeCircles = [];
+    var labelTexts = [];
+    
+    var force;
+
     var xScale = d3.scale.linear()
         .domain([0, renderer.width()])
         .range([0, renderer.width()]);
@@ -13,32 +22,27 @@
     var zoomDensityScale = options.zoomDensityScale;
     var radiusFactor = zoomDensityScale(1);
 
+    //[of]:    function zoomed() {
+    // This function is called by zoomBehavior and this.zoomPan to update the graph
+    function zoomed() {
+        radiusFactor = zoomDensityScale(zoomBehavior.scale());
+        
+        if (options.updateOnlyPositionsOnZoom)
+            self.updatePositions("zoom");
+        else
+            self.update(null, null, null, 0, "zoom");
+        
+        if (options.enableForce && force)
+            force.resume();
+        
+        d3.event.sourceEvent.stopPropagation();
+    }
+    //[cf]
     var zoomBehavior = d3.behavior.zoom()
         .x(xScale)
         .y(yScale)
         .scaleExtent(options.zoomExtent)
-        .on("zoom", function () { 
-            radiusFactor = zoomDensityScale(zoomBehavior.scale());
-            
-            if (options.updateOnlyPositionsOnZoom)
-                self.updatePositions("zoom");
-            else
-                self.update(null, null, null, 0, "zoom");
-
-            if (options.enableForce && force)
-                force.resume();
-            
-            d3.event.sourceEvent.stopPropagation();
-        });
-
-    var visNodes, visLinks, visClusters;
-    
-    var clusterHulls = [];
-    var linkLines = [];
-    var nodeCircles = [];
-    var labelTexts = [];
-    
-    var force;
+        .on("zoom", zoomed);
 
     //[of]:    function clusterHullFromVisCluster(visCluster) {
     function clusterHullFromVisCluster(visCluster) {
@@ -54,6 +58,7 @@
             clusterHull.eventHandlers = {};    
             if (options.onClusterClick) { clusterHull.eventHandlers.click = options.onClusterClick; }
     
+            // If a double click handler is provided, use it. Otherwise, default behavior is to collapse the cluster when double-clicking.
             if (options.onClusterDoubleClick) { 
                 clusterHull.eventHandlers.dblclick = options.onClusterDoubleClick; 
             } else {
@@ -491,29 +496,6 @@
     }
     //[cf]
 
-    //[of]:    this.updateForceDynamics(newForceParameters) {
-    this.updateForceDynamics = function (newForceParameters) {
-        _.extend(options.forceParameters, newForceParameters);
-    
-        if (force) {
-            force
-                .linkDistance(options.forceParameters.linkDistance)
-                .linkStrength(options.forceParameters.linkStrength)
-                .friction(options.forceParameters.friction)
-                .charge(options.forceParameters.charge)
-                //.chargeDistance(options.forceParameters.chargeDistance)   // This doesn't seem to be supported in this version of D3.
-                .theta(options.forceParameters.theta)
-                .gravity(options.forceParameters.gravity)
-    
-            // These properties only take effect in force.start(), so do that.
-            if (newForceParameters.hasOwnProperty("linkDistance") || 
-                newForceParameters.hasOwnProperty("linkStrength") || 
-                newForceParameters.hasOwnProperty("charge"))
-                force.start();
-        }
-    };
-    //[cf]
-
     //[of]:    function cluster(alpha) {
     function cluster(alpha) {
         return function(d) {
@@ -613,6 +595,35 @@
     this.resumeForce = function () {
         force.resume();
     }
+    //[cf]
+    //[of]:    this.updateForceDynamics(newForceParameters) {
+    this.updateForceDynamics = function (newForceParameters) {
+        _.extend(options.forceParameters, newForceParameters);
+    
+        if (force) {
+            force
+                .linkDistance(options.forceParameters.linkDistance)
+                .linkStrength(options.forceParameters.linkStrength)
+                .friction(options.forceParameters.friction)
+                .charge(options.forceParameters.charge)
+                //.chargeDistance(options.forceParameters.chargeDistance)   // This doesn't seem to be supported in this version of D3.
+                .theta(options.forceParameters.theta)
+                .gravity(options.forceParameters.gravity)
+    
+            // These properties only take effect in force.start(), so do that.
+            if (newForceParameters.hasOwnProperty("linkDistance") || 
+                newForceParameters.hasOwnProperty("linkStrength") || 
+                newForceParameters.hasOwnProperty("charge"))
+                force.start();
+        }
+    };
+    //[cf]
+
+    //[of]:    this.zoomPan = function (scale, translate, transitionDuration) {
+    this.zoomPan = function (scale, translate, transitionDuration) {
+        zoomBehavior.scale(scale).translate(translate);
+        zoomed();
+    };
     //[cf]
 
     //[of]:    function initialize() {

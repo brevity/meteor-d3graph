@@ -228,16 +228,24 @@
     //[cf]
 
     //[of]:    function attachEvents(selection, renderItems) {
+    // This is an attempt to make a general purpose attach-eventhandlers-to-visual-element function. This is hard though.
+    // 
     function attachEvents(selection, renderItems) {
         var dragBehavior;
     
-        // We want to know all the different types of events that exist in any of the elements. This cryptic oneliner does that:
+        // We want to know all the different types of events that exist in any of the elements. This cryptic oneliner does that.
+        // Say we have one element with handlers for click and mouseover, and another one with handlers for mouseover and mouseout.
+        // We will want an array that says ["click", "mouseover", "mouseout"]. We will have to attach all three events to all elements
+        // because there is no (trivial) way to attach event handlers per element. The handlers will actually be functions that check
+        // if the given handler exists and only then call it.
         var allEvents = _.uniq(_.flatten(_.map(_.pluck(renderItems, "eventHandlers"), function (eh) { return _.keys(eh); })));
     
+        // Add all the handlers except for click and dblclick which we take special care of below.
         _.each(allEvents, function (ce) {
             if (ce === "click" || ce === "dblclick")
                 return;
-                
+            
+            // drag events aren't native to the browser so we need to attach D3's dragBehavior if such handlers exist.
             if (ce === "dragstart" || ce === "drag" || ce === "dragend") {
                 if (!dragBehavior) {
                     dragBehavior = d3.behavior.drag()
@@ -268,7 +276,9 @@
         var singleClickTimer;
         var storedEvent;
         
-        // Handle click and dblclick..
+        // Now, as for click and dblclick, we want to make sure they can work together. If only one of them is supplied, there is no problem
+        // because we can simply attach to that event. However, if both are in use, we need to wait after the first click and see if the user
+        // indeed meant to double click or not. If no secondary click is recorded within doubleClickDelay milliseconds, it's considered a single click.
         selection.on("click", function (d, i) {
             if (d.eventHandlers.hasOwnProperty("click") && d.eventHandlers.hasOwnProperty("dblclick")) {
                 if (singleClickTimer) {
@@ -308,6 +318,7 @@
     this.update = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor, transitionDuration) {
         transitionDuration = transitionDuration === undefined ? 250 : transitionDuration;
     
+        // This is used to know where labels with anchor="auto" should go.
         var centroidX = d3.mean(nodeCircles, function (nc) { return nc.x; });
         
         //[of]:    Clusters
@@ -511,6 +522,7 @@
     //[of]:    this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor) {
     this.updatePositions = function (clusterHulls, linkLines, nodeCircles, labelTexts, xScale, yScale, radiusFactor) {
     
+        // This is used to know where labels with anchor="auto" should go.
         var centroidX = d3.mean(nodeCircles, function (nc) { return nc.x; });
     
         //[of]:    Clusters
