@@ -140,20 +140,24 @@
         var dynamicDescription = options.describeVisNode ? options.describeVisNode(visNode, radiusFactor) : {};
         var description = _.extend({}, options.defaultNodeDescription, dynamicDescription);
     
-        if (!_.isNumber(nodeCircle.x) || !_.isNumber(nodeCircle.y)) {
-            if (description.x && !isNaN(description.x))
-                nodeCircle.x = description.x;   // This is a bit silly because it will happen in updateProperties below. However, we need it for the label which is constructed first.
-            else {
-                var w = renderer.width();
-                nodeCircle.x = w / 2 + (Math.random() * (w / 2) - w / 4);
-            }
-            
-            if (description.y && !isNaN(description.y))
-                nodeCircle.y = description.y;
-            else {
-                var h = renderer.height();
-                nodeCircle.y = h / 2 + (Math.random() * (h / 2) - h / 4);
-            }
+        if (_.isNumber(description.x)) {
+            nodeCircle.x = description.x;   // This is a bit silly because it will happen in updateProperties below. However, we need it for the label which is constructed first.
+            nodeCircle.px = description.x;  // Do this to avoid anxiety-attack style movements from force when we've fixed coords
+        } else if (!_.isNumber(nodeCircle.x)) { // If there was no description, and we didn't have one from before, create a random one.
+            var w = renderer.width();
+            var x = w / 2 + (Math.random() * (w / 2) - w / 4)
+            nodeCircle.x = x;
+            nodeCircle.px = x;
+        }
+        
+        if (_.isNumber(description.y)) {
+            nodeCircle.y = description.y;
+            nodeCircle.py = description.y;
+        } else if (!_.isNumber(nodeCircle.y)) {
+            var h = renderer.height();
+            var y = h / 2 + (Math.random() * (h / 2) - h / 4);
+            nodeCircle.y = y;
+            nodeCircle.py = y;
         }
     
         if (!_.isUndefined(description.label)) {
@@ -510,10 +514,14 @@
                 r = ((d.radius + centralClusterNode.radius) / zoomBehavior.scale()) * radiusFactor;
             if (l != r) {
                 l = (l - r) / l * alpha;
-                d.x -= x *= l;
-                d.y -= y *= l;
-                centralClusterNode.x += x;
-                centralClusterNode.y += y;
+                if (!d.fixed) {
+                    d.x -= x *= l;
+                    d.y -= y *= l;
+                }
+                if (centralClusterNode.fixed) {
+                    centralClusterNode.x += x;
+                    centralClusterNode.y += y;
+                }
             }
         };
     }
@@ -541,10 +549,14 @@
     
                     if (l < r) {
                         l = (l - r) / l * alpha;
-                        d.x -= x *= l;
-                        d.y -= y *= l;
-                        quad.point.x += x;
-                        quad.point.y += y;
+                        if (!d.fixed) {
+                            d.x -= x *= l;
+                            d.y -= y *= l;
+                        }
+                        if (!quad.point.fixed) {
+                            quad.point.x += x;
+                            quad.point.y += y;
+                        }
                     }
                 }
                 return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
@@ -617,6 +629,11 @@
                 force.start();
         }
     };
+    //[cf]
+    //[of]:    this.stopForce = function () {
+    this.stopForce = function () {
+        force.stop();
+    }
     //[cf]
 
     //[of]:    this.zoomPan = function (scale, translate, transitionDuration) {
