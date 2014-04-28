@@ -25,14 +25,19 @@
     //[of]:    function zoomed() {
     // This function is called by zoomBehavior and this.zoomPan to update the graph
     function zoomed() {
-        radiusFactor = zoomDensityScale(zoomBehavior.scale());
+        var newRadiusFactor = zoomDensityScale(zoomBehavior.scale());
+        var radiusFactorChanged = newRadiusFactor !== radiusFactor;
+        
+        radiusFactor = newRadiusFactor;
         
         if (options.updateOnlyPositionsOnZoom)
             self.updatePositions("zoom");
         else
             self.update(null, null, null, 0, "zoom");
         
-        if (options.enableForce && force)
+        // If force and collision detection is enabled, and this call changed the density (radiusFactor),
+        // nodes might be colliding so we need to resume the force.
+        if (options.enableForce && options.enableCollisionDetection && force && radiusFactorChanged)
             force.resume();
         
         d3.event.sourceEvent.stopPropagation();
