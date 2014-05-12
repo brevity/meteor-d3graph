@@ -1,6 +1,6 @@
 ﻿SvgRenderer = function (containerElement, options) {
     options = $.extend(true, {}, defaultSvgRendererOptions, options);
-    
+
     var svg, defs;
     var layers = {};
     var previousRadiusFactor;   // Used to check if we need to update sizes
@@ -446,8 +446,8 @@
         nodeEnter
             .attr("class", "node")
             .attr("data-id", function (d) { return d.id; })
-            .attr("cx", function (d) { return xScale(d.x); })
-            .attr("cy", function (d) { return yScale(d.y); })
+            .attr("cx", function (d) { var sx = xScale(d.x); return isNaN(sx) ? 0 : sx; })
+            .attr("cy", function (d) { var sy = yScale(d.y); return isNaN(sy) ? 0 : sy; })
             .attr("r", 1e-6)
             .style("opacity", 1e-6)
             .append("svg:title");
@@ -460,8 +460,8 @@
             .remove();
         
         node.transition().duration(transitionDuration)
-            .attr("cx", function (d) { return xScale(d.x); })
-            .attr("cy", function (d) { return yScale(d.y); })
+            .attr("cx", function (d) { var sx = xScale(d.x); return isNaN(sx) ? 0 : sx; })
+            .attr("cy", function (d) { var sy = yScale(d.y); return isNaN(sy) ? 0 : sy; })
             .attr("r", function (d) { return d.radius * radiusFactor; })
             .style("stroke-width", function (d) { return d.borderWidth * radiusFactor; })
             .style("opacity", function (d) { return d.opacity; })
@@ -595,8 +595,8 @@
             .data(nodeCircles, function (d) { return d.id; });
         
         node
-            .attr("cx", function (d) { return xScale(d.x); })
-            .attr("cy", function (d) { return yScale(d.y); })
+            .attr("cx", function (d) { var sx = xScale(d.x); return isNaN(sx) ? 0 : sx; })
+            .attr("cy", function (d) { var sy = yScale(d.y); return isNaN(sy) ? 0 : sy; })
         
         if (radiusFactor !== previousRadiusFactor) {
             node

@@ -31,8 +31,5 @@ NodeCircle.prototype.optionalPropertyTypes = [
 NodeCircle.prototype.updateProperties = function (properties) {
     TypeChecker.checkProperties(properties, [], this.propertyTypes, true);
     _.extend(this, properties);
-
-    if (isNaN(x)) x = 0;    // Do this to make sure we don't get a million console error messages.
-    if (isNaN(y)) y = 0;
 }
 
