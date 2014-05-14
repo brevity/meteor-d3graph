@@ -49,6 +49,15 @@
         .scaleExtent(options.zoomExtent)
         .on("zoom", zoomed);
 
+    //[of]:    this.unscaleCoords = function(screenCoords) {
+    this.unscaleCoords = function(screenCoords) {
+        var unscaledX = xScale.invert(screenCoords[0]);
+        var unscaledY = yScale.invert(screenCoords[1]);
+        
+        return [unscaledX, unscaledY];
+    };
+    //[cf]
+
     //[of]:    function clusterHullFromVisCluster(visCluster) {
     function clusterHullFromVisCluster(visCluster) {
         var clusterHull;
@@ -140,6 +149,8 @@
             if (options.onNodeMouseOver) { nodeCircle.eventHandlers.mouseover = options.onNodeMouseOver; }
             if (options.onNodeMouseOut) { nodeCircle.eventHandlers.mouseout = options.onNodeMouseOut; }
             if (options.onNodeDragStart) { nodeCircle.eventHandlers.dragstart = options.onNodeDragStart; }
+            if (options.onNodeDrag) { nodeCircle.eventHandlers.drag = options.onNodeDrag; }
+            if (options.onNodeDragEnd) { nodeCircle.eventHandlers.dragend = options.onNodeDragEnd; }
         }
     
         var dynamicDescription = options.describeVisNode ? options.describeVisNode(visNode, radiusFactor) : {};
@@ -523,7 +534,7 @@
                     d.x -= x *= l;
                     d.y -= y *= l;
                 }
-                if (centralClusterNode.fixed) {
+                if (!centralClusterNode.fixed) {
                     centralClusterNode.x += x;
                     centralClusterNode.y += y;
                 }
@@ -652,9 +663,11 @@
     function initialize() {
         var container = d3.select(renderer.containerElement()[0]);
         
-        container
-            .call(zoomBehavior)
-            .on("dblclick.zoom", null);
+        if (options.enableZoom) {
+            container
+                .call(zoomBehavior)
+                .on("dblclick.zoom", null);
+        }
     
         if (options.onClick) {
             container.on("click", options.onClick);

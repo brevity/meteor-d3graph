@@ -416,6 +416,7 @@
             .remove();
         
         link
+            .attr("stroke-dasharray", function (d) { return d.dashPattern; })
             .attr("marker-end", function (d) { 
                 if (!d.marker) return null;
                 var sizeColorCombo =  + d.width.toFixed(0) + "-" + d3.rgb(d.color).toString().substr(1) + Math.floor(d.opacity * 255).toString(16);

@@ -208,6 +208,14 @@ The <code>options</code> object allows the following properties for describing v
  * <code>describeExpandedCluster</code> - describer function for expanded clusters
 
 
+GraphVis.unscaleCoords
+----------------------
+<code>GraphVis.unscaleCoords = function (screenCoords)</code>
+
+This function takes a set of screen coordinates relative to the container div and scales them into the coordinate system of the visualisation. The argument <code>screenCoords</code> should be an array of coordinates <code>[x, y]</code>. The return value has the same format.
+Use this is you want to position something under the mouse etc.
+
+
 GraphVis.update
 ---------------
 <code>GraphVis.update = function (newVisNodes, newVisLinks, newVisClusters, transitionDuration, updateType)</code>
